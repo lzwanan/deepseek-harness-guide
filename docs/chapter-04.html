@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>一切皆插件，但插件分三种角色 — DeepSeek Harness 导读</title>
+    <meta
+      name="description"
+      content="Service Definition / Service Provider / Consumer：仓库怎么把「约定」和「实现」拆开，让沙箱替换本地执行时模型毫无感知。"
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+    <script>
+      (function () {
+        try {
+          var m = localStorage.getItem("dsh-theme") || "auto";
+          var dark =
+            m === "dark" ||
+            (m === "auto" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          document.documentElement.dataset.mode = m;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body data-page="chapter-04.html" data-chapter="第 04 章 · 插件模型">
+    <div
+      class="progress"
+      data-progress
+      role="progressbar"
+      aria-label="阅读进度"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    ></div>
+
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="brand" href="index.html">
+          <span class="brand__mark" aria-hidden="true"></span>
+          DeepSeek Harness 导读
+        </a>
+        <nav class="topnav" aria-label="站点导航">
+          <a href="index.html">目录</a>
+          <a class="is-optional" href="glossary.html">术语表</a>
+          <a class="is-optional" href="styleguide.html">规范</a>
+          <a
+            href="https://github.com/lzwanan/deepseek-harness-guide"
+            target="_blank"
+            rel="noreferrer noopener"
+            >本仓库</a
+          >
+          <a
+            class="is-optional"
+            href="https://github.com/deepseek-ai/deepseek-harness"
+            target="_blank"
+            rel="noreferrer noopener"
+            >上游源码</a
+          >
+          <button class="theme-toggle" type="button" data-theme-toggle>自动</button>
+        </nav>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="side" aria-label="章节目录">
+        <div class="side__group">
+          <p class="eyebrow">七章 · 从现象到源码</p>
+          <ul class="sidetree sidetree--all">
+            <li>
+              <a href="chapter-01.html"><span class="n">01</span><span>它是什么</span></a>
+            </li>
+            <li>
+              <a href="chapter-02.html"><span class="n">02</span><span>turn 与 step</span></a>
+            </li>
+            <li>
+              <a href="chapter-03.html"><span class="n">03</span><span>Session 日志</span></a>
+            </li>
+
+            <li class="is-open">
+              <a href="#s1"><span class="n">04</span><span>插件模型</span></a>
+              <ul class="sidetree__sub">
+                <li class="is-current">
+                  <a href="#s1"
+                    ><span class="n">4.1</span><span>一切皆插件</span></a
+                  >
+                </li>
+                <li>
+                  <a href="#s2"
+                    ><span class="n">4.2</span><span>一项能力，三个角色</span></a
+                  >
+                </li>
+                <li>
+                  <a href="#s3"
+                    ><span class="n">4.3</span><span>换实现，不动约定</span></a
+                  >
+                </li>
+                <li>
+                  <a href="#s4"
+                    ><span class="n">4.4</span><span>拿到包名，先定位角色</span></a
+                  >
+                </li>
+              </ul>
+            </li>
+
+            <li>
+              <a class="is-locked"
+                ><span class="n">05</span
+                ><span>能力缝<span class="soon">待补</span></span></a
+              >
+            </li>
+            <li>
+              <a class="is-locked"
+                ><span class="n">06</span
+                ><span>组装<span class="soon">待补</span></span></a
+              >
+            </li>
+            <li>
+              <a class="is-locked"
+                ><span class="n">07</span
+                ><span>设计取舍<span class="soon">待补</span></span></a
+              >
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+      <article class="doc">
+        <p class="eyebrow">第 4 章 · <i>plugin</i> 模型 — 4.1</p>
+        <h1 id="s1">一切皆插件，但插件分三种角色</h1>
+        <p class="lede">
+          仓库的一句话简介是 <i>Everything is a Plugin</i>。这句话的重点不是「全是插件」，而是「插件之间怎么打交道」——那一半才是架构。
+        </p>
+
+        <p>
+          底座是一个叫 <code>cordis</code> 的插件运行时。它提供三件事：一个所有插件共享的
+          <code>ctx</code>；把某个对象<strong>注册成服务</strong>的机制（服务挂在一个键上，比如
+          <code>ctx.shell</code>）；以及 <code>inject</code> ——
+          插件声明「我需要哪些键」，声明了还没就位的键，它的装载会挂起等待，而不是报错。
+        </p>
+
+        <p>
+          机制就这么多。真正让六十多个包能长期共存的，是包边界上的一条纪律：一项可替换的能力，要按变化速率拆成三种角色。这一章就用
+          shell 这条最完整的能力缝，把这条纪律看清楚。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li><code>cordis</code> 给了三样东西：共享的 <code>ctx</code>、按键注册的服务、<code>inject</code> 声明依赖。</li>
+            <li><code>inject</code> 的语义是「等」，不是「报错」——依赖没就位，装载挂起。</li>
+            <li>机制是通用的；包怎么拆，是仓库自己加的纪律，就是接下来三个角色。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>插件 A 想用插件 B 注册的服务，A 需要 import B 的代码吗？</summary>
+          <p>
+            不需要。A 只声明 <code>inject: ['那个键']</code>，然后面向<strong>键的类型</strong>编程 ——
+            类型来自 Service Definition 包，不是来自 B。这就是为什么换掉 B（Provider）时，A
+            一行代码都不用改。
+          </p>
+        </details>
+
+        <h2 id="s2">一项能力，三个角色</h2>
+        <p>
+          shell 执行是仓库里可替换能力中最完整的一条缝，拆成了四个包、三种角色。
+          先看图，再看每个角色在源码里的长相。
+        </p>
+
+        <figure class="scope" id="fig-1" data-figure="seam">
+          <div class="scope__bar">
+            <span class="scope__id">FIG.01</span>
+            <span class="scope__title">SEAM · 约定的键不换，换的只是实现</span>
+            <span class="scope__bar__sp"></span>
+            <span class="scope__live" data-live><i></i><span>running</span></span>
+          </div>
+          <div class="scope__stage" data-stage></div>
+          <p class="readout" data-readout></p>
+          <div class="scope__ctrl">
+            <button
+              class="play"
+              type="button"
+              data-play
+              data-state="paused"
+              aria-pressed="false"
+              aria-label="播放动画"
+            >
+              <svg class="icon-play" viewBox="0 0 9 10" aria-hidden="true">
+                <path d="M0 0L9 5L0 10V0Z" fill="currentColor" />
+              </svg>
+              <svg class="icon-pause" viewBox="0 0 9 10" aria-hidden="true">
+                <rect x="0" y="0" width="3" height="10" fill="currentColor" />
+                <rect x="6" y="0" width="3" height="10" fill="currentColor" />
+              </svg>
+            </button>
+            <div class="scrub">
+              <div class="scrub__rail"><div class="scrub__fill" data-fill></div></div>
+              <div class="scrub__segs" data-segs></div>
+              <div class="scrub__knob" data-knob></div>
+              <input
+                type="range"
+                min="0"
+                max="1000"
+                value="0"
+                step="1"
+                data-scrub
+                aria-label="动画进度"
+              />
+            </div>
+            <div class="speed" role="group" aria-label="播放速度">
+              <button type="button" data-speed="0.5" aria-pressed="false">.5×</button>
+              <button type="button" data-speed="1" aria-pressed="true">1×</button>
+              <button type="button" data-speed="2" aria-pressed="false">2×</button>
+            </div>
+            <span class="time" data-time></span>
+          </div>
+        </figure>
+        <p class="figcap">
+          三个角色、四帧故事：注册 → 等待 → 接通 → 换实现。看第 ④ 帧：左边的包名换了，中间的键和右边的
+          schema 纹丝不动 —— 这就是拆这三个角色买到的东西。
+        </p>
+
+        <p><b>Service Definition</b> 拥有 <code>ctx.&lt;key&gt;</code> 这个键和全部词汇。它是一个抽象类，不是 TypeScript 接口 —— 因为它要作为运行时的服务类型被注册：</p>
+
+        <p class="eyebrow code__cap">packages/shell/shell/src/index.ts · 有删节</p>
+        <pre class="code"><code>declare module '@deepseek-ai/cordis' {
+  interface Context {
+    shell: ShellExecutor        // 这个键归本包所有
+  }
+}
+
+export abstract class ShellExecutor extends Service {
+  constructor(ctx: Context) {
+    super(ctx, 'shell')         // 注册成 ctx.shell
+  }
+  abstract resolve(request: ShellExecRequest): ShellExecSpec
+  abstract execute(spec: ShellExecSpec): Promise&lt;ShellExecution&gt;
+}</code></pre>
+
+        <p><b>Service Provider</b> 提供实现：<code>dsh-bash-local</code> 用本地子进程实现这个抽象类，<code>dsh-bash-sandbox</code> 用沙箱实现它。装载哪个，<code>ctx.shell</code> 就是谁 —— 每个键同时只允许一个服务，装第二个会直接抛错。</p>
+
+        <p><b>Consumer</b> 是模型和插件编程时面对的东西。<code>dsh-tool-bash</code> 声明自己依赖哪些键，然后只面向 Service Definition 的类型编程：</p>
+
+        <p class="eyebrow code__cap">packages/shell/tool-bash/src/index.ts</p>
+        <pre class="code"><code>export const inject = ['tools', 'shell', 'systemPrompt',
+                       'shellEnv', 'workingDirectory']
+
+// …装载完成后：
+proc = await ctx.shell.execute({ ...spec, signal })</code></pre>
+
+        <p>
+          注意 Consumer 的依赖清单里<strong>没有任何 bash-local 的类型</strong>。它注入的是
+          <code>shell</code> 这个键 —— 键背后今天是本地子进程，明天换成沙箱，这一行
+          <code>ctx.shell.execute(...)</code> 一个字符都不用动。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li><b>Definition</b> 拥有键和词汇（抽象类）；<b>Provider</b> 提供实现；<b>Consumer</b> 面向键编程。</li>
+            <li>每个键同时只有一个服务 —— 重复装载同一个键会抛错，这是故意的。</li>
+            <li>Consumer 的 <code>inject</code> 清单里永远不出现 Provider 的名字。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>为什么 Service Definition 是抽象类而不是 <code>interface</code>？</summary>
+          <p>
+            因为它要在运行时被<strong>注册成服务</strong>（<code>super(ctx, 'shell')</code>），而不只是在编译期做形状检查。
+            接口编译后就不存在了，挂不到 <code>ctx</code> 上；抽象类既给出词汇和默认行为，
+            又强制 Provider 实现抽象方法 —— 一份代码同时服务两个角色。
+          </p>
+        </details>
+
+        <h2 id="s3">换实现，不动约定</h2>
+        <p>
+          拆三个角色的理由写在设计笔记的第一段：<b>约定、实现、消费方 API，这三样东西以不同的速率、因为不同的原因变化</b>。
+          把它们捆在一个包里，换执行器就要连着动工具 schema —— 而模型看到的约定根本没变。
+        </p>
+
+        <p>仓库里这条缝的现存证据，就是包的描述文字：</p>
+
+        <ul>
+          <li>
+            <code>dsh-shell</code> —— <i>Abstract bash executor seam (ctx.shell)</i>。
+            只有 3 个源码文件，没有任何「执行」的实现。
+          </li>
+          <li>
+            <code>dsh-bash-local</code> —— <i>Local-subprocess implementation of the … bash executor seam</i>。
+            子进程、超时、溢出文件，全是它的实现细节。
+          </li>
+          <li>
+            <code>dsh-bash-sandbox</code> —— <i>Sandbox-consuming implementation of the … seam</i>。
+            和 local 是<strong>兄弟包</strong>：实现同一个抽象类，互相不知道对方存在。
+          </li>
+          <li>
+            <code>dsh-tool-bash</code> —— <i>Model-facing bash tool</i>。
+            关心的只有 schema、后台任务和升级策略，不关心底下谁在跑。
+          </li>
+        </ul>
+
+        <p>
+          反例同样重要：LLM 这条缝<strong>没有</strong>拆 —— Service Definition 和 Consumer
+          合在 <code>dsh-llm</code> 里，各家模型适配器作为 Provider 单独成包。因为它的 Consumer
+          是 agent loop 本身，不存在「可替换的 schema 接口」。设计笔记里写得很直白：
+          <b>如果一项能力只想象得出一种 Provider 和一个 Consumer，就保持一个包，直到出现第二个</b> ——
+          不要预防性地拆。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>拆包的依据是<b>变化速率</b>，不是「分层好看」。</li>
+            <li>local 和 sandbox 是实现同一抽象类的兄弟包 —— 平级、互不感知。</li>
+            <li>只有一个 Provider 和一个 Consumer 的能力保持一个包（LLM 缝），拆分本身有成本。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>换掉 <code>dsh-bash-local</code> 之后，模型的工具列表会变化吗？</summary>
+          <p>
+            不会。工具 schema 属于 Consumer（<code>dsh-tool-bash</code>），它注入的是
+            <code>shell</code> 这个键。Provider 换成沙箱后，模型看到的还是那个
+            <code>bash</code> 工具 —— 变的只是每条命令在底下怎么被关起来。
+          </p>
+        </details>
+
+        <h2 id="s4">拿到包名，先定位角色</h2>
+        <p>
+          这一章最终要变成一个读代码的惯用动作：碰到仓库里任何一个包，先问它是三个角色中的哪一个，
+          然后顺着键往下走。按命中率排序，判断手段是：
+        </p>
+
+        <ul>
+          <li>
+            <b>看 <code>package.json</code> 的描述</b>。带 <i>seam</i> / <i>Abstract</i> 的是
+            Definition；带 <i>implementation of</i> 的是 Provider；带 <i>Model-facing</i> 的是 Consumer。
+          </li>
+          <li>
+            <b>看 <code>src</code> 里有没有 <code>export const inject</code></b>。有，就是 Consumer
+            （或自带消费方的复合插件）；没有而 <code>extends Service</code>，就是 Definition。
+          </li>
+          <li>
+            <b>看 <code>declare module</code> 块给 <code>Context</code> 加了什么键</b> ——
+            那是这条缝在 <code>ctx</code> 上的地址，全仓库搜这个键就能找齐所有 Provider 和 Consumer。
+          </li>
+          <li>
+            <b>记住一条快捷路径</b>：<code>ctx.&lt;key&gt;</code> → 键的类型在哪个包 →
+            那个包就是 Definition → 再搜谁 <code>extends</code> 它（Provider）、谁 <code>inject</code> 它（Consumer）。
+          </li>
+        </ul>
+
+        <p>
+          下一章「能力缝」会用这套动作过一遍仓库里其余的缝 —— jobs、sandbox、mcp
+          —— 你会发现它们全是同一个故事的变奏。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>描述文字就是角色标签：<i>seam / Abstract</i>、<i>implementation of</i>、<i>Model-facing</i>。</li>
+            <li><code>export const inject</code> 和 <code>extends Service</code> 是比包名更可靠的判据。</li>
+            <li>顺着一个 <code>ctx.&lt;key&gt;</code> 能找齐整条缝：类型 → Provider → Consumer。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em><code>packages/shell/tool-bash</code> 是三个角色中的哪个？依据是什么？</summary>
+          <p>
+            Consumer。两个依据：<code>src/index.ts</code> 第一行就写着
+            <code>export const inject = ['tools', 'shell', …]</code>；描述是
+            <i>Model-facing bash tool</i>。它不 <code>extends Service</code>、不注册任何键 ——
+            它消费键。
+          </p>
+        </details>
+
+        <nav class="pager" aria-label="章节导航">
+          <a class="pager__item" href="chapter-03.html">
+            <span class="pager__k">← 上一章</span>
+            <span class="pager__t">03 · Session 日志</span>
+          </a>
+          <span class="pager__item pager__next is-off">
+            <span class="pager__k">下一章 →</span>
+            <span class="pager__t">05 能力缝 · 待补</span>
+          </span>
+        </nav>
+      </article>
+
+      <aside class="toc" aria-label="本页目录">
+        <p class="eyebrow">本页</p>
+        <ul>
+          <li><a data-n="4.1" href="#s1" class="is-active">一切皆插件</a></li>
+          <li><a data-n="4.2" href="#s2">一项能力，三个角色</a></li>
+          <li><a data-n="4.3" href="#s3">换实现，不动约定</a></li>
+          <li><a data-n="4.4" href="#s4">拿到包名，先定位角色</a></li>
+        </ul>
+        <hr class="toc__rule" />
+        <p class="eyebrow">涉及模块</p>
+        <ul class="toc__modules">
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/shell/shell"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/shell/shell"
+              >shell/shell</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/shell/bash-local"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/shell/bash-local"
+              >shell/bash-local</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/shell/bash-sandbox"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/shell/bash-sandbox"
+              >shell/bash-sandbox</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/shell/tool-bash"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/shell/tool-bash"
+              >shell/tool-bash</a
+            >
+          </li>
+        </ul>
+        <p class="eyebrow" style="margin-top: 18px">快捷键</p>
+        <ul class="toc__keys">
+          <li><kbd>空格</kbd> 播放 / 暂停</li>
+          <li><kbd>拖动</kbd> 进度条来回看</li>
+        </ul>
+      </aside>
+    </div>
+
+    <nav class="jump" data-jump aria-label="节导航">
+      <a class="jump__b" data-jump-prev href="#s1">
+        <span class="jump__a" aria-hidden="true">↑</span>
+        <span class="jump__n" data-jump-prev-n></span>
+        <span class="jump__t" data-jump-prev-t></span>
+      </a>
+      <a class="jump__b" data-jump-next href="#s2">
+        <span class="jump__a" aria-hidden="true">↓</span>
+        <span class="jump__n" data-jump-next-n></span>
+        <span class="jump__t" data-jump-next-t></span>
+      </a>
+    </nav>
+
+    <script src="assets/site.js" defer></script>
+    <script src="assets/figures.js" defer></script>
+  </body>
+</html>

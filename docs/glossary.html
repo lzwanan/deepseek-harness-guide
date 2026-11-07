@@ -305,6 +305,24 @@
             >
             <span class="glo__src">04 · 插件模型</span>
           </li>
+
+          <li class="glo__item" id="cordis" data-glo-item="cordis ctx 插件运行时 服务容器 fiber">
+            <span class="glo__term">cordis</span>
+            <span class="glo__desc"
+              ><b>底座的插件运行时。</b>提供共享的 <code>ctx</code>、按键注册的服务、以及
+              <code>inject</code> 依赖声明。仓库六十多个包都活在它的装载/卸载生命周期里。</span
+            >
+            <span class="glo__src">04 · 插件模型</span>
+          </li>
+
+          <li class="glo__item" id="inject" data-glo-item="inject 注入 依赖 挂起 等待 服务">
+            <span class="glo__term">inject</span>
+            <span class="glo__desc"
+              ><b>插件声明「我需要哪些服务键」。</b>键还没就位时，插件装载会挂起等待而不是报错 ——
+              所以装载顺序不敏感，依赖关系一目了然。</span
+            >
+            <span class="glo__src">04 · 插件模型</span>
+          </li>
         </ul>
       </section>
 

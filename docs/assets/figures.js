@@ -1074,6 +1074,164 @@
   }
 
   /* ==========================================================================
+     图 5 —— 能力缝的接线
+     形态：中间一块 ctx 总线，左 Provider、右 Consumer，三条相位把线接通，
+     最后换掉左边的实现 —— 线和右边的工具纹丝不动。
+     讲的是「约定的键不换，换的只是背后的实现」。
+     ========================================================================== */
+
+  var SM = {
+    text: [
+      "<b>中间是 ctx</b> —— 所有插件共享的一块总线。现在它上面什么都没有。",
+      "<b>① 装载 dsh-bash-local。</b>它是 Service Provider：把自己注册成 <code>ctx.shell</code>。总线上从此有了这个键。",
+      "<b>② 装载 dsh-tool-bash。</b>它声明 <code>inject: ['shell']</code> —— 服务还没就位，它的装载就挂在这里等。",
+      "<b>③ 服务到位，接线完成。</b>模型由此看到一个叫 <code>bash</code> 的工具。它不知道、也不需要知道底下是谁在执行。",
+      "<b>④ 换实现：</b>卸掉 bash-local，装上 bash-sandbox。<code>ctx.shell</code> 还是那个键，<code>bash</code> 的 schema 一个字没变。"
+    ]
+  };
+
+  function buildSeam(root) {
+    var s = [];
+
+    s.push(
+      '<svg viewBox="0 0 560 224" role="img" aria-label="Service Provider 把自己注册成 ctx.shell，Consumer 声明 inject 等它就位；换实现时两者都不用动">'
+    );
+
+    /* 中间：ctx 总线与服务键 */
+    s.push('<text class="d-sm__bus" x="170" y="20">ctx</text>');
+    s.push('<g data-key opacity="0">');
+    s.push('<rect class="d-sm__key" x="170" y="30" width="220" height="26" rx="2"/>');
+    s.push('<text class="d-sm__keyt" x="184" y="47">ctx.shell</text>');
+    s.push(
+      '<text class="d-sm__keys" x="378" y="47" text-anchor="end">ShellExecutor</text>'
+    );
+    s.push("</g>");
+
+    /* 左：Provider */
+    s.push('<g data-pv opacity="0">');
+    s.push('<rect class="d-sm__box" x="24" y="88" width="206" height="48" rx="2"/>');
+    s.push('<text class="d-sm__k" x="38" y="106">PROVIDER</text>');
+    s.push('<text class="d-sm__n" data-pv-local x="38" y="121">dsh-bash-local</text>');
+    s.push('<text class="d-sm__n" data-pv-sandbox x="38" y="121" opacity="0">dsh-bash-sandbox</text>');
+    s.push('<text class="d-sm__d" data-pvd x="38" y="131" opacity="0">本地子进程执行</text>');
+    s.push("</g>");
+
+    /* 右：Consumer */
+    s.push('<g data-cs opacity="0">');
+    s.push('<rect class="d-sm__box" x="330" y="88" width="206" height="48" rx="2"/>');
+    s.push('<text class="d-sm__k" x="344" y="106">CONSUMER</text>');
+    s.push('<text class="d-sm__n" x="344" y="121">dsh-tool-bash</text>');
+    s.push(
+      '<text class="d-sm__d" data-csd x="344" y="131" opacity="0">inject: [\'shell\']</text>'
+    );
+    s.push("</g>");
+
+    /* 接线：左上→键，键→右上。虚线段表示挂起等待。 */
+    s.push('<path class="d-sm__wire" data-wp d="M127 88 V43 H170" opacity="0"/>');
+    s.push('<path class="d-sm__wire is-wait" data-wc d="M433 88 V43 H390" opacity="0"/>');
+    s.push(
+      '<text class="d-sm__wait" data-wait x="447" y="76" opacity="0">fiber 挂起，等服务出现</text>'
+    );
+
+    /* 模型看到的东西 */
+    s.push('<g data-tool opacity="0">');
+    s.push('<rect class="d-sm__tool" x="330" y="164" width="206" height="26" rx="2"/>');
+    s.push('<text class="d-sm__keyt" x="344" y="181">bash</text>');
+    s.push(
+      '<text class="d-sm__keys" x="522" y="181" text-anchor="end">模型的工具 schema</text>'
+    );
+    s.push("</g>");
+
+    /* 换实现时的一行注 */
+    s.push(
+      '<text class="d-sm__note" data-note x="24" y="206" opacity="0">实现换了，约定的键和模型看到的 schema 都没动</text>'
+    );
+
+    s.push("</svg>");
+
+    var host = document.createElement("div");
+    host.innerHTML = s.join("");
+    var svg = host.firstChild;
+    root.appendChild(svg);
+
+    var keyEl = svg.querySelector("[data-key]");
+    var pvEl = svg.querySelector("[data-pv]");
+    var csEl = svg.querySelector("[data-cs]");
+    var pvLocal = svg.querySelector("[data-pv-local]");
+    var pvSandbox = svg.querySelector("[data-pv-sandbox]");
+    var wp = svg.querySelector("[data-wp]");
+    var wc = svg.querySelector("[data-wc]");
+    var wait = svg.querySelector("[data-wait]");
+    var csd = svg.querySelector("[data-csd]");
+    var pvd = svg.querySelector("[data-pvd]");
+    var toolEl = svg.querySelector("[data-tool]");
+    var note = svg.querySelector("[data-note]");
+
+    function paint(t) {
+      var k;
+      var reg = clamp((t - 0.22) / 0.08, 0, 1); // 注册完成 → 键出现
+      keyEl.setAttribute("opacity", reg.toFixed(2));
+
+      k = clamp((t - 0.1) / 0.12, 0, 1);
+      pvEl.setAttribute("opacity", k.toFixed(2));
+      pvEl.setAttribute("transform", "translate(0," + (8 * (1 - k)).toFixed(1) + ")");
+
+      wp.setAttribute("opacity", clamp((t - 0.2) / 0.1, 0, 1).toFixed(2));
+
+      k = clamp((t - 0.32) / 0.12, 0, 1);
+      csEl.setAttribute("opacity", k.toFixed(2));
+      csEl.setAttribute("transform", "translate(0," + (8 * (1 - k)).toFixed(1) + ")");
+
+      wc.setAttribute("opacity", clamp((t - 0.42) / 0.08, 0, 1).toFixed(2));
+      /* 两侧的说明行跟各自的接线同时出现；换实现时说明跟着名字一起切 */
+      var dOn = clamp((t - 0.44) / 0.08, 0, 1);
+      csd.setAttribute("opacity", dOn.toFixed(2));
+      pvd.setAttribute("opacity", dOn.toFixed(2));
+      wait.setAttribute(
+        "opacity",
+        (clamp((t - 0.48) / 0.06, 0, 1) * (1 - clamp((t - 0.62) / 0.06, 0, 1))).toFixed(2)
+      );
+
+      /* 接通：虚线换实线（换 class），工具浮出 */
+      var conn = clamp((t - 0.62) / 0.08, 0, 1);
+      wc.setAttribute("class", "d-sm__wire" + (conn > 0.5 ? "" : " is-wait"));
+      k = clamp((t - 0.66) / 0.1, 0, 1);
+      toolEl.setAttribute("opacity", k.toFixed(2));
+      toolEl.setAttribute(
+        "transform",
+        "translate(0," + (6 * (1 - k)).toFixed(1) + ")"
+      );
+
+      /* 换实现：名字交叉淡切，其余不动 */
+      var out = clamp((t - 0.8) / 0.07, 0, 1);
+      var inn = clamp((t - 0.87) / 0.07, 0, 1);
+      pvLocal.setAttribute("opacity", (1 - out).toFixed(2));
+      pvSandbox.setAttribute("opacity", inn.toFixed(2));
+      pvd.textContent = inn > 0.5 ? "每条命令经 ctx.sandbox" : "本地子进程执行";
+      note.setAttribute("opacity", clamp((t - 0.9) / 0.06, 0, 1).toFixed(2));
+
+      if (t < 0.1) return 0;
+      if (t < 0.32) return 1;
+      if (t < 0.62) return 2;
+      if (t < 0.8) return 3;
+      return 4;
+    }
+
+    return {
+      paint: paint,
+      phases: 5,
+      text: function (i) {
+        return SM.text[clamp(i, 0, 4)];
+      },
+      jump: function (k) {
+        return clamp((clamp(k, 0, 4) + 0.5) / 5, 0, 1);
+      },
+      stepMarks: [0.1, 0.32, 0.62, 0.8],
+      marks: []
+    };
+  }
+
+  /* ==========================================================================
      播放器
      ========================================================================== */
 
@@ -1289,7 +1447,7 @@
 
   /* ---------- 启动 ---------- */
 
-  var DUR = { step: 11000, turn: 15000, boundary: 12000, log: 14000 };
+  var DUR = { step: 11000, turn: 15000, boundary: 12000, log: 14000, seam: 12000 };
 
   document.addEventListener("DOMContentLoaded", function () {
     Array.prototype.forEach.call(
@@ -1305,6 +1463,8 @@
             ? buildBoundary
             : kind === "log"
             ? buildLog
+            : kind === "seam"
+            ? buildSeam
             : null;
         if (builder) Player(root, builder, { duration: DUR[kind] });
       }

@@ -3483,6 +3483,87 @@ a.row--live .row__n {
   fill: var(--panel-ink-3);
 }
 
+/* ---------- 图 5：能力缝接线（第 04 章） ---------- */
+
+/* 中间的键是约定的化身：整张图其余的东西都可以换，它不能。
+   所以它最先出现、且全程不动 —— 右边两个框和一条线只换内容不换位置。 */
+
+.d-sm__bus {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  fill: var(--panel-ink-3);
+}
+
+.d-sm__key {
+  fill: var(--signal-wash);
+  stroke: var(--signal-line);
+}
+
+.d-sm__keyt {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  fill: var(--signal);
+}
+
+.d-sm__keys {
+  font-family: var(--mono);
+  font-size: 8px;
+  fill: var(--panel-ink-3);
+}
+
+.d-sm__box {
+  fill: var(--panel-fill);
+  stroke: var(--panel-line);
+}
+
+.d-sm__k {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  letter-spacing: 0.12em;
+  fill: var(--panel-ink-4);
+}
+
+.d-sm__n {
+  font-family: var(--mono);
+  font-size: 9px;
+  fill: var(--panel-ink-2);
+}
+
+.d-sm__d {
+  font-family: var(--mono);
+  font-size: 8px;
+  fill: var(--panel-ink-3);
+}
+
+.d-sm__wire {
+  fill: none;
+  stroke: var(--panel-axis);
+  stroke-width: 1;
+}
+
+.d-sm__wire.is-wait {
+  stroke: var(--panel-ink-4);
+  stroke-dasharray: 3 3;
+}
+
+.d-sm__wait {
+  font-family: var(--sans);
+  font-size: 8px;
+  fill: var(--panel-ink-3);
+}
+
+.d-sm__tool {
+  fill: var(--signal-soft);
+  stroke: var(--signal-line);
+}
+
+.d-sm__note {
+  font-family: var(--sans);
+  font-size: 8px;
+  fill: var(--panel-ink-3);
+}
+
 /* ---------- 动效降级 ---------- */
 
 @media (prefers-reduced-motion: reduce) {
