@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>模型没有手 — DeepSeek Harness 导读</title>
+    <meta
+      name="description"
+      content="模型只输出文字。读写文件、跑命令、改代码全部发生在 harness 里，而 harness 唯一的输入就是那串文字。"
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+    <script>
+      (function () {
+        try {
+          var m = localStorage.getItem("dsh-theme") || "auto";
+          var dark =
+            m === "dark" ||
+            (m === "auto" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          document.documentElement.dataset.mode = m;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body data-page="chapter-01.html" data-chapter="第 01 章 · 它是什么">
+    <div
+      class="progress"
+      data-progress
+      role="progressbar"
+      aria-label="阅读进度"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    ></div>
+
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="brand" href="index.html">
+          <span class="brand__mark" aria-hidden="true"></span>
+          DeepSeek Harness 导读
+        </a>
+        <nav class="topnav" aria-label="站点导航">
+          <a href="index.html">目录</a>
+          <a class="is-optional" href="glossary.html">术语表</a>
+          <a class="is-optional" href="styleguide.html">规范</a>
+          <a class="is-optional" href="https://github.com/lzwanan/deepseek-harness-guide" target="_blank" rel="noreferrer noopener">本仓库</a>
+          <a class="is-optional" href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noreferrer noopener">上游源码</a>
+          <button class="theme-toggle" type="button" data-theme-toggle>自动</button>
+        </nav>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="side" aria-label="章节目录">
+        <div class="side__group">
+          <p class="eyebrow">七章 · 从现象到源码</p>
+          <ul class="sidetree sidetree--all">
+            <li class="is-open">
+              <a href="#s1"><span class="n">01</span><span>它是什么</span></a>
+              <ul class="sidetree__sub">
+                <li class="is-current">
+                  <a href="#s1"><span class="n">1.1</span><span>模型没有手</span></a>
+                </li>
+                <li>
+                  <a href="#s2"><span class="n">1.2</span><span>什么样的文本能变成动作</span></a>
+                </li>
+                <li>
+                  <a href="#s3"><span class="n">1.3</span><span>边界上还有两件事</span></a>
+                </li>
+                <li>
+                  <a href="#s4"><span class="n">1.4</span><span>这个仓库在造什么</span></a>
+                </li>
+              </ul>
+            </li>
+
+            <li>
+              <a href="chapter-02.html"><span class="n">02</span><span>turn 与 step</span></a>
+            </li>
+
+            <li>
+              <a class="is-locked"
+                ><span class="n">03</span
+                ><span>Session 日志<span class="soon">待补</span></span></a
+              >
+            </li>
+            <li>
+              <a class="is-locked"
+                ><span class="n">04</span
+                ><span>插件模型<span class="soon">待补</span></span></a
+              >
+            </li>
+            <li>
+              <a class="is-locked"
+                ><span class="n">05</span
+                ><span>能力缝<span class="soon">待补</span></span></a
+              >
+            </li>
+            <li>
+              <a class="is-locked"
+                ><span class="n">06</span
+                ><span>组装<span class="soon">待补</span></span></a
+              >
+            </li>
+            <li>
+              <a class="is-locked"
+                ><span class="n">07</span
+                ><span>设计取舍<span class="soon">待补</span></span></a
+              >
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+      <article class="doc">
+        <p class="eyebrow">第 1 章 · 它是什么 — 1.1</p>
+        <h1 id="s1">模型没有手</h1>
+        <p class="lede">
+          它只能输出一串文本。读写文件、跑命令、改代码，全部发生在 harness 里 ——
+          而 harness 手上唯一的原料，就是那串文本。
+        </p>
+
+        <p>
+          先把最容易含混的一件事说清：模型这个接口，接收的是「消息列表 + 工具清单」，吐出的是「一段文本流」。
+          它没有文件句柄，没有网络连接，没有计时器。你不能让它「打开」任何东西。
+        </p>
+        <p>
+          那为什么它能改你的代码？因为外面套着一层程序：它把模型的输出读进来，认出一段特殊的文本，
+          自己动手去做那件事，再把结果当作新的文本喂回去。这一层就是
+          <span
+            class="term"
+            tabindex="0"
+            data-tip-key="harness"
+            data-tip="套在模型外面的那一层程序。负责把模型的文字变成真实动作，并把全过程记进日志。DeepSeek Harness 就是这个角色。"
+            >harness</span
+          >。
+        </p>
+
+        <figure class="scope" id="fig-1" data-figure="boundary">
+          <div class="scope__bar">
+            <span class="scope__id">FIG.01</span>
+            <span class="scope__title">BOUNDARY · 文字停在这里，动作发生在右边</span>
+            <span class="scope__bar__sp"></span>
+            <span class="scope__live" data-live><i></i><span>running</span></span>
+          </div>
+          <div class="scope__stage" data-stage></div>
+          <p class="readout" data-readout></p>
+          <div class="scope__ctrl">
+            <button
+              class="play"
+              type="button"
+              data-play
+              data-state="paused"
+              aria-pressed="false"
+              aria-label="播放动画"
+            >
+              <svg class="icon-play" viewBox="0 0 9 10" aria-hidden="true">
+                <path d="M0 0L9 5L0 10V0Z" fill="currentColor" />
+              </svg>
+              <svg class="icon-pause" viewBox="0 0 9 10" aria-hidden="true">
+                <rect x="0" y="0" width="3" height="10" fill="currentColor" />
+                <rect x="6" y="0" width="3" height="10" fill="currentColor" />
+              </svg>
+            </button>
+            <div class="scrub">
+              <div class="scrub__rail"><div class="scrub__fill" data-fill></div></div>
+              <div class="scrub__segs" data-segs></div>
+              <div class="scrub__knob" data-knob></div>
+              <input
+                type="range"
+                min="0"
+                max="1000"
+                value="0"
+                step="1"
+                data-scrub
+                aria-label="动画进度"
+              />
+            </div>
+            <div class="speed" role="group" aria-label="播放速度">
+              <button type="button" data-speed="0.5" aria-pressed="false">.5×</button>
+              <button type="button" data-speed="1" aria-pressed="true">1×</button>
+              <button type="button" data-speed="2" aria-pressed="false">2×</button>
+            </div>
+            <span class="time" data-time></span>
+          </div>
+        </figure>
+        <p class="figcap">
+          左边那串方块是模型的全部产出。它停在虚线上，什么也不会发生 ——
+          直到中间那层认出其中一段长得像调用申请。动画可以拖、可以暂停；鼠标停在图上按空格也能暂停。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>模型的输入是消息列表和工具清单，输出是文本流。没有第三种能力。</li>
+            <li>「它会用工具」是个说法，不是一个能力 —— 执行工具的是外面那层程序。</li>
+            <li>所以调试 harness 时，先分清问题出在「模型说了什么」还是「那层程序做了什么」。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>模型在回复里写了「我已经删除了 build 目录」。build 目录真的被删了吗？</summary>
+          <p>
+            不一定。<b>这句话本身只是一段文本。</b>只有当这段文本里同时带了一个结构化的工具调用、
+            并且 harness 认出来、执行成功，目录才会真的消失。模型完全可以只是「说」它删了。
+          </p>
+        </details>
+
+        <h2 id="s2">闸门：什么样的文本能变成动作</h2>
+        <p>
+          不是所有输出都会触发动作，否则模型随便说句话就能格式化硬盘。闸门只认一种结构：一个带名字和参数的工具调用。
+        </p>
+        <pre class="code"><code>tool/call { name, arguments }
+       name       = "read_file"          <b>← 必须是已注册工具里的一个</b>
+       arguments  = { path: "..." }      <b>← 必须过这个工具的 schema</b></code></pre>
+        <p class="eyebrow code__cap">字段示意 · 实际事件名见 packages/core/tools 与 core/agent-loop</p>
+        <p>
+          闸门后面是一串检查：这个工具在这轮对话里可见吗、参数符合
+          <span
+            class="term"
+            tabindex="0"
+            data-tip-key="schema"
+            data-tip="参数的结构定义。工具会声明自己接受什么字段、什么类型，harness 按它校验模型的输出；不合规的调用会被拒绝，而不是硬跑。"
+            >schema</span
+          >
+          吗、当前权限允许吗。全过，才真的执行。
+        </p>
+        <p>
+          执行结果会被写成一条 `tool/call` 结果事件，落进
+          <span
+            class="term"
+            tabindex="0"
+            data-tip-key="session"
+            data-tip="只追加的事件日志。模型说过的每句话、每次工具调用和结果都在里面。下一轮请求的上下文就是从这条日志派生出来的。"
+            >Session</span
+          >
+          日志，再作为新消息回到模型。模型看到的始终是「文件里有一百二十行」这样的文字，而不是文件本身。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>只有结构化工具调用能穿过闸门；普通文字穿不过去，再像也不行。</li>
+            <li>穿过去之前要过三道检查：可见性、参数 schema、权限。</li>
+            <li>模型永远看不到「执行」这件事，只看到执行结果的文字版。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>如果模型把工具名字拼错了，或者参数少了一个字段，会发生什么？</summary>
+          <p>
+            <b>调用被拒绝，错误信息作为结果回到模型。</b>不会执行，也不会让循环崩掉 ——
+            模型下一步通常会用正确参数再试一次。这正是「闸门」和「执行」分开的价值：
+            拒绝发生在动手之前。
+          </p>
+        </details>
+
+        <h2 id="s3">边界上还有两件事：历史和约束</h2>
+        <p>
+          把「文字变动作」讲完，容易以为 harness 只是个执行器。它还得管两件模型完全管不了的事。
+        </p>
+        <p>
+          <strong>一是历史。</strong>模型没有记忆，每次请求都是一次性的。它之所以「记得」前面聊过什么，
+          是因为 harness 每次重新把整段历史装配成 prompt 再发过去。这也解释了一个反直觉的现象：
+          同一个回合里，工具调用越多，后面的请求越贵 —— 每一次都要把更长的历史重新送一遍。
+        </p>
+        <p>
+          <strong>二是约束。</strong>哪些工具这轮可见、能不能写文件、命令跑在哪个目录、要不要进沙箱，
+          全都是 harness 在装配请求之前就决定好的。模型看到的工具清单，是 harness 筛过的那一份。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>「记忆」不是模型的能力，是 harness 每次重新装配 prompt 的结果。</li>
+            <li>「能做什么」也不是模型决定的，是 harness 交给它的工具清单决定的。</li>
+            <li>所以读这个仓库时，先看它怎么装配 prompt、怎么筛工具，再看它怎么跑循环。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>为什么同一个回合里第二次请求通常比第一次贵？</summary>
+          <p>
+            因为<b>每次请求都重新组装一次完整上下文</b>：第一次只有用户那一句话，第二次多了模型的回复、
+            工具调用和工具结果。历史越长，输入 token 越多。
+          </p>
+        </details>
+
+        <h2 id="s4">所以这个仓库在造什么</h2>
+        <p>
+          官方对自己的描述只有一句：<em>Everything is a Plugin.</em>
+          这不是口号，是目录结构 —— 仓库里四百多个包，几乎每一个都是可替换的一层。
+        </p>
+        <p>
+          循环本身在 <code>packages/core/agent-loop</code>，具体实现是一个叫 <code>ReactLoopAgent</code>
+          的驱动器；它不自己执行工具，而是把整批调用交给 <code>ctx.tools.execute()</code>；
+          它也不自己存历史，而是往 Session 日志里追加事件。连「用哪个模型」都是运行时查出来的。
+        </p>
+        <p>
+          这种拆法有一个直接后果：<strong>你几乎不会「改一个文件就让功能变了」</strong>，
+          但你可以在不改动核心的前提下，换掉文件系统、换掉模型、加一个拦截器。
+          读懂它的关键，是搞清楚「谁在什么时候调用了谁」，而不是背下某个类的字段。
+        </p>
+
+        <p class="eyebrow code__cap">后面六章的位置</p>
+        <pre class="code"><code>02  turn 与 step      一次对话怎么被切成回合和步      <b>已上线</b>
+03  Session 日志      只追加的事件流，一切的真相来源
+04  插件模型          ctx、注册、dispose
+05  能力缝            接口 / 实现 / 消费者三件套
+06  组装              从空工程到能跑的最小 dsh
+07  设计取舍          为什么它必须允许破坏性变更</code></pre>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>这个仓库的核心主张是「一切皆插件」，目录结构就是它的论点。</li>
+            <li>循环只负责编排：装配、请求、分发、记录，四件事都不自己实现。</li>
+            <li>读源码的顺序建议是：先看事件，再看调用方，最后才看类型定义。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>如果只允许你读一个目录来理解这个项目，读哪里？</summary>
+          <p>
+            <code>packages/core/agent-loop</code>。它同时碰到模型、工具、会话三边，
+            四个源文件就把「轮次 / 步骤 / 收件箱 / 运行时上下文」串起来了。
+            读完它，其他包都是它的零件。
+          </p>
+        </details>
+
+        <nav class="pager" aria-label="章节导航">
+          <a class="pager__item" href="index.html">
+            <span class="pager__k">← 目录</span>
+            <span class="pager__t">七章总览</span>
+          </a>
+          <a class="pager__item pager__next" href="chapter-02.html">
+            <span class="pager__k">下一章 →</span>
+            <span class="pager__t">02 · turn 与 step</span>
+          </a>
+        </nav>
+      </article>
+
+      <aside class="toc" aria-label="本页目录">
+        <p class="eyebrow">本页</p>
+        <ul>
+          <li><a data-n="1.1" href="#s1" class="is-active">模型没有手</a></li>
+          <li><a data-n="1.2" href="#s2">什么样的文本能变成动作</a></li>
+          <li><a data-n="1.3" href="#s3">边界上还有两件事</a></li>
+          <li><a data-n="1.4" href="#s4">这个仓库在造什么</a></li>
+        </ul>
+        <hr class="toc__rule" />
+        <p class="eyebrow">涉及模块</p>
+        <ul class="toc__modules">
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/core/agent-loop"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/core/agent-loop"
+              >core/agent-loop</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/core/tools"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/core/tools"
+              >core/tools</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/core/session"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/core/session"
+              >core/session</a
+            >
+          </li>
+        </ul>
+        <p class="eyebrow" style="margin-top: 18px">快捷键</p>
+        <ul class="toc__keys">
+          <li><kbd>空格</kbd> 播放 / 暂停</li>
+          <li><kbd>拖动</kbd> 进度条来回看</li>
+        </ul>
+      </aside>
+    </div>
+
+    <nav class="jump" data-jump aria-label="节导航">
+      <a class="jump__b" data-jump-prev href="#s1">
+        <span class="jump__a" aria-hidden="true">↑</span>
+        <span class="jump__n" data-jump-prev-n></span>
+        <span class="jump__t" data-jump-prev-t></span>
+      </a>
+      <a class="jump__b" data-jump-next href="#s2">
+        <span class="jump__a" aria-hidden="true">↓</span>
+        <span class="jump__n" data-jump-next-n></span>
+        <span class="jump__t" data-jump-next-t></span>
+      </a>
+    </nav>
+
+    <script src="assets/site.js" defer></script>
+    <script src="assets/figures.js" defer></script>
+  </body>
+</html>

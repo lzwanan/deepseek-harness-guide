@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>设计规范 · 观测台 — DeepSeek Harness 导读</title>
+    <meta
+      name="description"
+      content="DeepSeek Harness 导读的设计规范：三条原则、26 个色卡、9 级字阶、组件规格、动效约束与红线清单。"
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+    <script>
+      (function () {
+        try {
+          var m = localStorage.getItem("dsh-theme") || "auto";
+          var dark =
+            m === "dark" ||
+            (m === "auto" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          document.documentElement.dataset.mode = m;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body data-page="styleguide.html">
+    <div
+      class="progress"
+      data-progress
+      role="progressbar"
+      aria-label="阅读进度"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    ></div>
+
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="brand" href="index.html">
+          <span class="brand__mark" aria-hidden="true"></span>
+          DeepSeek Harness 导读
+        </a>
+        <nav class="topnav" aria-label="站点导航">
+          <a href="index.html">目录</a>
+          <a class="is-optional" href="glossary.html">术语表</a>
+          <a href="styleguide.html" aria-current="page">规范</a>
+          <a class="is-optional" href="https://github.com/lzwanan/deepseek-harness-guide" target="_blank" rel="noreferrer noopener">本仓库</a>
+          <a class="is-optional" href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noreferrer noopener">上游源码</a>
+          <button class="theme-toggle" type="button" data-theme-toggle>自动</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="sg">
+      <header class="sg__head">
+        <p class="eyebrow">设计规范 / design system</p>
+        <h1>观测台：一套为<em>读懂代码</em>而做的版式</h1>
+        <p class="lede">
+          这不是一份风格偏好清单。下面每一条规格，都可以从前面三条原则推出来；每一个色值和字号，都和
+          <code>assets/site.css</code> 里是同一个来源 —— 色卡上的 hex 是页面读出来的，不是手抄的。
+        </p>
+        <div class="sg__meta">
+          <span>v5</span>
+          <span>26 色卡</span>
+          <span>9 级字阶</span>
+          <span>2 张动图 · 1 套参数</span>
+          <span>5 个走查钩子</span>
+        </div>
+      </header>
+
+      <div class="sg__body">
+        <nav class="sg-nav" aria-label="规范目录">
+          <ol>
+            <li><a href="#s1"><b>01</b><span>原则</span></a></li>
+            <li><a href="#s2"><b>02</b><span>色彩</span></a></li>
+            <li><a href="#s3"><b>03</b><span>字体</span></a></li>
+            <li><a href="#s4"><b>04</b><span>网格</span></a></li>
+            <li><a href="#s5"><b>05</b><span>组件</span></a></li>
+            <li><a href="#s6"><b>06</b><span>结构</span></a></li>
+            <li><a href="#s7"><b>07</b><span>动效</span></a></li>
+            <li><a href="#s8"><b>08</b><span>文案</span></a></li>
+            <li><a href="#s9"><b>09</b><span>红线</span></a></li>
+            <li><a href="#s10"><b>10</b><span>文件</span></a></li>
+          </ol>
+        </nav>
+
+        <div class="sg-main">
+          <!-- 01 ------------------------------------------------------------ -->
+          <section class="sg-sec" id="s1">
+            <div class="sg-sec__h">
+              <span class="sg-sec__n">01</span>
+              <h2>三条原则</h2>
+              <span class="eyebrow">principles</span>
+            </div>
+            <p class="sg-p">
+              前面四版被否掉的方案，问题都不在「不好看」，而在「看起来像生成的」。生成物的特征是均匀：
+              所有盒子同一个圆角、字号只差 1px、颜色只差 5% 明度。三条原则就是对均匀的三次反抗。
+            </p>
+
+            <div class="sg-rules">
+              <div class="sg-rule">
+                <span class="sg-rule__k">P.01</span>
+                <h3>对比要极端，不要均匀</h3>
+                <p>
+                  24px 的编号和 10px 的微标签出现在同一行。中间不设 14/15/16/17 这种只差 1px
+                  的档位 —— 层级要能在一眼之内分开，而不是让读者去「感觉」。
+                </p>
+              </div>
+              <div class="sg-rule">
+                <span class="sg-rule__k">P.02</span>
+                <h3>细节必须是信息，不是装饰</h3>
+                <p>
+                  刻度、索引、时间码、包路径、真实行数。删掉一个细节如果没人察觉少了信息，那它就是装饰，
+                  应该删掉。
+                </p>
+              </div>
+              <div class="sg-rule">
+                <span class="sg-rule__k">P.03</span>
+                <h3>空间由网格组织，不由留白堆积</h3>
+                <p>
+                  24px 点阵底、16px 图网格、1180 的版心。留白是网格算出来的结果，
+                  不是「这里感觉该空一点」。
+                </p>
+              </div>
+            </div>
+
+            <p class="sg-note">
+              验收动作：把页面截图缩到 30%。还能看出「哪里是标题、哪里是标注、哪里是测量结果」，就成立；
+              如果糊成一片均匀的灰，就是均匀过头了。
+            </p>
+          </section>
+
+          <!-- 02 ------------------------------------------------------------ -->
+          <section class="sg-sec" id="s2">
+            <div class="sg-sec__h">
+              <span class="sg-sec__n">02</span>
+              <h2>色彩</h2>
+              <span class="eyebrow">color</span>
+            </div>
+            <p class="sg-p">
+              只有<strong>一个</strong>强调色：一种仪器青。不是「主色 + 辅色 + 点缀色」的套装 ——
+              它只出现在三件事上：信号（数据在流动）、当前态（你在哪）、可点提示。一屏之内不超过三处。
+            </p>
+
+            <p class="sg-sub">面 / 墨 / 线</p>
+            <div class="sg-sws">
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--bg)"></div>
+                <span class="sw__k">--bg</span><span class="sw__v" data-token="--bg">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--bg-2)"></div>
+                <span class="sw__k">--bg-2</span><span class="sw__v" data-token="--bg-2">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--raise)"></div>
+                <span class="sw__k">--raise</span><span class="sw__v" data-token="--raise">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--ink)"></div>
+                <span class="sw__k">--ink</span><span class="sw__v" data-token="--ink">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--ink-3)"></div>
+                <span class="sw__k">--ink-3</span><span class="sw__v" data-token="--ink-3">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--ink-4)"></div>
+                <span class="sw__k">--ink-4</span><span class="sw__v" data-token="--ink-4">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--line)"></div>
+                <span class="sw__k">--line</span><span class="sw__v" data-token="--line">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--rule)"></div>
+                <span class="sw__k">--rule</span><span class="sw__v" data-token="--rule">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--hair)"></div>
+                <span class="sw__k">--hair</span><span class="sw__v" data-token="--hair">—</span>
+              </div>
+            </div>
+            <p class="sg-note">
+              <code>--line</code> 分区块，<code>--rule</code> 分列表行，<code>--hair</code>
+              画最轻的描边（标签边、旁注线）。三级线三个用途，不按「看起来差不多」混用。
+              <code>--ink-4</code> 对比度约 2.8:1，只允许出现在 13px 以下的辅助文案里，不能承载正文。
+            </p>
+
+            <p class="sg-sub">信号色</p>
+            <div class="sg-sws">
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--signal)"></div>
+                <span class="sw__k">--signal</span><span class="sw__v" data-token="--signal">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--signal-2)"></div>
+                <span class="sw__k">--signal-2</span><span class="sw__v" data-token="--signal-2">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--signal-bright)"></div>
+                <span class="sw__k">--signal-bright</span><span class="sw__v" data-token="--signal-bright">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--signal-soft)"></div>
+                <span class="sw__k">--signal-soft</span><span class="sw__v" data-token="--signal-soft">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--signal-wash)"></div>
+                <span class="sw__k">--signal-wash</span><span class="sw__v" data-token="--signal-wash">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--signal-line)"></div>
+                <span class="sw__k">--signal-line</span><span class="sw__v" data-token="--signal-line">—</span>
+              </div>
+            </div>
+            <p class="sg-note">
+              <code>--signal</code> 在白底约 5.9:1，可以承载正文级文字；<code>--signal-2</code>、<code>--signal-bright</code>
+              只做图形（描边、圆点、进度填充），不用于文字。强调色的配比目标是 92% 面 / 7% 墨 / 1% 信号 ——
+              一张截图里青色超过三处，就删掉两处。
+            </p>
+
+            <p class="sg-sub">观测窗：一套 class，两副面孔</p>
+            <div class="sg-sws">
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--panel)"></div>
+                <span class="sw__k">--panel</span><span class="sw__v" data-token="--panel">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--panel-card)"></div>
+                <span class="sw__k">--panel-card</span><span class="sw__v" data-token="--panel-card">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--panel-line)"></div>
+                <span class="sw__k">--panel-line</span><span class="sw__v" data-token="--panel-line">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--panel-edge)"></div>
+                <span class="sw__k">--panel-edge</span><span class="sw__v" data-token="--panel-edge">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--panel-ink)"></div>
+                <span class="sw__k">--panel-ink</span><span class="sw__v" data-token="--panel-ink">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--panel-ink-3)"></div>
+                <span class="sw__k">--panel-ink-3</span><span class="sw__v" data-token="--panel-ink-3">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--panel-axis)"></div>
+                <span class="sw__k">--panel-axis</span><span class="sw__v" data-token="--panel-axis">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--panel-fill)"></div>
+                <span class="sw__k">--panel-fill</span><span class="sw__v" data-token="--panel-fill">—</span>
+              </div>
+            </div>
+            <p class="sg-note">
+              亮色主题下面板是<strong>图纸</strong>（浅灰底、刻度、深青信号），暗色主题下才是
+              <strong>屏幕</strong>（近黑底、荧光青）。这也是为什么 JS 里不允许出现任何色值 ——
+              换肤只改 CSS，一套代码两副面孔。
+            </p>
+
+            <p class="sg-sub">代码块</p>
+            <div class="sg-sws">
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--deep)"></div>
+                <span class="sw__k">--deep</span><span class="sw__v" data-token="--deep">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--deep-2)"></div>
+                <span class="sw__k">--deep-2</span><span class="sw__v" data-token="--deep-2">—</span>
+              </div>
+              <div class="sw">
+                <div class="sw__chip" style="--s: var(--deep-line)"></div>
+                <span class="sw__k">--deep-line</span><span class="sw__v" data-token="--deep-line">—</span>
+              </div>
+            </div>
+            <p class="sg-note">
+              全站唯一被允许的深色块。读者对「代码是深色」有预期，但没有任何预期要求动画面板也必须是黑的 ——
+              这正是第三版返工的原因。
+            </p>
+          </section>
+
+          <!-- 03 ------------------------------------------------------------ -->
+          <section class="sg-sec" id="s3">
+            <div class="sg-sec__h">
+              <span class="sg-sec__n">03</span>
+              <h2>字体</h2>
+              <span class="eyebrow">typography</span>
+            </div>
+            <p class="sg-p">
+              两种字体，不引入第三种。拉丁用 Inter，中文落到 PingFang SC / Noto Sans SC，
+              代码用 JetBrains Mono。全站零衬线；等宽必须关掉连字 —— 读者会照着屏幕抄命令，
+              <code>-&gt;</code> 变成箭头就是在骗人。
+            </p>
+
+            <div class="sg-wrap">
+              <table class="sg-table">
+                <colgroup>
+                  <col style="width: 92px" />
+                  <col style="width: 280px" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>角色</th>
+                    <th>规格</th>
+                    <th>用途与样例</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Display</td>
+                    <td class="mono">clamp(31→46) / 1.12 / −0.035em / 600</td>
+                    <td><span class="t-d1">让它动手的，是 harness。</span></td>
+                  </tr>
+                  <tr>
+                    <td>章节 H1</td>
+                    <td class="mono">clamp(27→34) / 1.32 / −0.028em / 600</td>
+                    <td><span class="t-h1">一次请求里到底发生了什么</span></td>
+                  </tr>
+                  <tr>
+                    <td>H2</td>
+                    <td class="mono">20 / 1.5 / −0.018em / 600</td>
+                    <td>
+                      <span class="t-h2">什么时候算结束</span>
+                      <span class="sg-note" style="margin-top: 6px"
+                        >H2 前面有一条 28px 的实线。它是节内可跳转的锚点，不是装饰。</span
+                      >
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Lede</td>
+                    <td class="mono">17 / 1.78 / 0 / 400 · ink-2</td>
+                    <td>
+                      <span style="font-size: 17px; line-height: 1.78; color: var(--ink-2)"
+                        >把一次模型调用拆开看，其实是四段固定的动作。</span
+                      >
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>正文</td>
+                    <td class="mono">16 / 1.82 / 0 / 400 · ink-3</td>
+                    <td><span class="t-body">循环的出口只有一个：本次请求没有要求任何工具。</span></td>
+                  </tr>
+                  <tr>
+                    <td>微标签</td>
+                    <td class="mono">10 / 1.6 / +0.14em / uppercase · ink-4</td>
+                    <td><span class="t-micro">fig.01 · step · 04 段动作</span></td>
+                  </tr>
+                  <tr>
+                    <td>章节编号</td>
+                    <td class="mono">24 / 1.15 / −0.03em / 300</td>
+                    <td><span class="t-num">02</span></td>
+                  </tr>
+                  <tr>
+                    <td>代码</td>
+                    <td class="mono">12 / 1.95 / 400 · 深色块</td>
+                    <td><span class="t-mono">turn/start → step/start → llm/stream</span></td>
+                  </tr>
+                  <tr>
+                    <td>图注</td>
+                    <td class="mono">12 / 1.75 / 400 · ink-4 · 左侧 1px 线</td>
+                    <td>
+                      <span style="font-size: 12px; color: var(--ink-4)"
+                        >点站点可以跳到那一刻；拖动进度条可以来回看。</span
+                      >
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="sg-note">
+              字距是全站最便宜的「去 AI 味」手段：20px 以上的标题用<strong>负</strong>字距（−0.018 →
+              −0.035em），微标签反过来用<strong>正</strong>字距（+0.14em）。生成出来的页面几乎从不调字距，
+              所以所有文字都像从同一个文本框里倒出来的。
+            </p>
+            <p class="sg-note">
+              代码块里只用一个字重（400）。要标关键行就用颜色（<code>--signal-bright</code>），
+              不用加粗 —— 等宽字体加粗会糊成一团。
+            </p>
+          </section>
+
+          <!-- 04 ------------------------------------------------------------ -->
+          <section class="sg-sec" id="s4">
+            <div class="sg-sec__h">
+              <span class="sg-sec__n">04</span>
+              <h2>网格与版心</h2>
+              <span class="eyebrow">grid</span>
+            </div>
+            <p class="sg-p">
+              版心 1180 切成三列：侧栏 232、正文列 740、目录 208。正文列里再扣掉左 56 / 右 64 的内边距，
+              实际行宽 620。所以 <code>--measure: 660</code> 是<strong>上限</strong>，不是承诺 ——
+              写作时按 620 算行数。
+            </p>
+
+            <div class="sg-ruler" role="img" aria-label="版心剖面：侧栏 232，正文列 740（内含 56 / 620 / 64），目录 208">
+              <span style="flex: 232">侧栏 232</span>
+              <span class="is-pad" style="flex: 56">56</span>
+              <span class="is-body" style="flex: 620">正文 620</span>
+              <span class="is-pad" style="flex: 64">64</span>
+              <span style="flex: 208">目录 208</span>
+            </div>
+            <div class="sg-ax">
+              <span>0</span>
+              <span>1180 · layout 最大宽度</span>
+            </div>
+            <p class="sg-note">
+              版心之外还有 28px 页边距，写在 <code>.topbar__inner</code> 和 <code>.home</code> 上，不在
+              <code>.layout</code> 里 —— 所以上面这条剖面从 0 量到 1180，不含页边距。
+            </p>
+
+            <p class="sg-sub">三套网格，各管一段</p>
+            <p class="sg-note">
+              <strong>24px 点阵</strong>（<code>body::before</code>）：只在首屏 800px 内可见，是「图纸」的底噪，
+              不参与任何元素对齐。<br />
+              <strong>16px 图网格</strong>（<code>figures.js</code> 的 <code>S.step</code>）：轴的起止点、节点、
+              刻度共用一套坐标。节点 x 必须是 16 的整数倍，否则那把尺子只是装饰。<br />
+              <strong>8px 间距档</strong>：8 / 16 / 22 / 32 / 40 / 64 / 88。不新增档位 ——
+              宁可跳到 88，也不要发明 72。
+            </p>
+
+            <p class="sg-sub">16px 对齐的可视证据</p>
+            <div class="sg-wrap">
+              <svg
+                viewBox="0 0 480 84"
+                width="100%"
+                style="max-width: 480px"
+                role="img"
+                aria-label="刻度每 16 一格，主刻度每 7 格，三个节点正好压在主刻度上"
+              >
+                <line x1="24" y1="34" x2="456" y2="34" stroke="var(--panel-line)" />
+                <g stroke="var(--panel-axis)" stroke-width="1">
+                  <line x1="32" y1="35" x2="32" y2="40" />
+                  <line x1="48" y1="35" x2="48" y2="40" />
+                  <line x1="64" y1="35" x2="64" y2="40" />
+                  <line x1="80" y1="35" x2="80" y2="40" />
+                  <line x1="96" y1="35" x2="96" y2="40" />
+                  <line x1="112" y1="35" x2="112" y2="40" />
+                  <line x1="144" y1="35" x2="144" y2="40" />
+                  <line x1="176" y1="35" x2="176" y2="40" />
+                  <line x1="192" y1="35" x2="192" y2="40" />
+                  <line x1="208" y1="35" x2="208" y2="40" />
+                  <line x1="224" y1="35" x2="224" y2="40" />
+                  <line x1="240" y1="35" x2="240" y2="40" />
+                  <line x1="256" y1="35" x2="256" y2="40" />
+                  <line x1="288" y1="35" x2="288" y2="40" />
+                  <line x1="320" y1="35" x2="320" y2="40" />
+                  <line x1="336" y1="35" x2="336" y2="40" />
+                  <line x1="352" y1="35" x2="352" y2="40" />
+                  <line x1="368" y1="35" x2="368" y2="40" />
+                  <line x1="384" y1="35" x2="384" y2="40" />
+                  <line x1="400" y1="35" x2="400" y2="40" />
+                  <line x1="432" y1="35" x2="432" y2="40" />
+                </g>
+                <g stroke="var(--ink-4)" stroke-width="1">
+                  <line x1="128" y1="35" x2="128" y2="46" />
+                  <line x1="272" y1="35" x2="272" y2="46" />
+                  <line x1="416" y1="35" x2="416" y2="46" />
+                </g>
+                <g fill="var(--signal)">
+                  <circle cx="128" cy="34" r="3.5" />
+                  <circle cx="272" cy="34" r="3.5" />
+                  <circle cx="416" cy="34" r="3.5" />
+                </g>
+                <g
+                  font-family="var(--mono)"
+                  font-size="9"
+                  fill="var(--panel-ink-3)"
+                  text-anchor="middle"
+                >
+                  <text x="128" y="66">claim</text>
+                  <text x="272" y="66">llm/stream</text>
+                  <text x="416" y="66">step/end</text>
+                </g>
+                <text
+                  x="24"
+                  y="20"
+                  font-family="var(--mono)"
+                  font-size="8.5"
+                  fill="var(--panel-ink-4)"
+                >
+                  次刻度 16 · 主刻度 112 = 7 × 16
+                </text>
+              </svg>
+            </div>
+            <p class="sg-note">
+              第一版这张图是「看起来对齐」的：节点 x 是手填的 108/244/380/516，刻度从 62 起每 16 一格。
+              两套坐标互不相干，于是每个点都落在刻度之间。后来统一到同一套数字里，
+              主刻度正好压在节点上，圆环下面露出一截刻度针 —— 对齐关系才看得见。
+            </p>
+          </section>
+
+          <!-- 05 ------------------------------------------------------------ -->
+          <section class="sg-sec" id="s5">
+            <div class="sg-sec__h">
+              <span class="sg-sec__n">05</span>
+              <h2>组件</h2>
+              <span class="eyebrow">parts</span>
+            </div>
+            <p class="sg-p">
+              下面每个样本都是线上的同一份 HTML + CSS，不是另画的示意图 —— 包括那个能拖动、能按空格暂停的观测窗。
+            </p>
+
+            <div class="sg-demo">
+              <span class="sg-demo__k">标签 / 三档，只差用途不差装饰</span>
+              <div class="sg-live">
+                <span class="eyebrow">FIG.01</span>
+                <span class="row__tag">4 节</span>
+                <span class="soon">待补</span>
+                <kbd>空格</kbd>
+              </div>
+              <p class="sg-note">
+                微标签 10px / +0.14em；计数标签 9px 实线框，表示「这里有一个真实数字」；
+                「待补」同样是 9px，但用虚线框 —— 虚线在工程语言里就是未完成，一眼能分开数据与占位。
+                同一种信息不做两种长相；不同用途也不借用同一种长相。
+              </p>
+            </div>
+
+            <div class="sg-demo">
+              <span class="sg-demo__k">术语提示 / 悬停、focus、点击都能开</span>
+              <p class="sg-p" style="margin-top: 0">
+                一个
+                <span
+                  class="term"
+                  tabindex="0"
+                  data-tip-key="turn"
+                  data-tip="一个回合。从你按下回车开始，到模型表示「没有更多要做的」为止。一个 turn 里可以包含 0 到多个 step。"
+                  >turn</span
+                >
+                从你按下回车开始，到「没有更多要做的了」结束。虚线是这条规则的唯一提示，
+                所以它必须比正文浅、比背景深 —— 看得见，但不打断阅读。
+              </p>
+              <p class="sg-note">
+                一条解释不超过 60 字，先中文后英文括号；向下优先弹出（遮后文比遮上文好，也不会挂在标题上）；
+                术语表里必须有同名词条，否则这条提示就是孤证。
+              </p>
+            </div>
+
+            <div class="sg-demo">
+              <span class="sg-demo__k">目录行 / 编号是第一眼落点</span>
+              <section class="index">
+                <div class="index__head">
+                  <span class="eyebrow">目录 / index</span>
+                  <span class="eyebrow">7 章 · 28 节</span>
+                </div>
+                <ol>
+                  <li>
+                    <a class="row row--live" href="chapter-02.html">
+                      <span class="row__n">02</span>
+                      <span>
+                        <span class="row__t">turn 与 step <span class="row__tag">3 节</span></span>
+                        <span class="row__d">一次对话的完整生命周期。两处可交互动画。</span>
+                      </span>
+                      <span class="row__go">→</span>
+                    </a>
+                  </li>
+                  <li>
+                    <div class="row">
+                      <span class="row__n">03</span>
+                      <span>
+                        <span class="row__t"
+                          >Session 日志 <span class="row__tag">4 节</span
+                          ><span class="soon">待补</span></span
+                        >
+                        <span class="row__d">只追加的事件流，决定了回放与迁移。</span>
+                      </span>
+                      <span class="row__go">→</span>
+                    </div>
+                  </li>
+                </ol>
+              </section>
+              <p class="sg-note">
+                编号 24px / 300，标题 17px / 500，说明 13px。行与行之间只用 1px 底线，不用卡片。
+                可读的那一章常驻箭头并给编号上色 —— 只靠 hover 才出现的箭头，等于让读者猜哪一行是链接。
+              </p>
+            </div>
+
+            <div class="sg-demo">
+              <span class="sg-demo__k">观测窗 / 全站唯一需要「仪器感」的地方</span>
+              <figure class="scope" id="fig-1" data-figure="step">
+                <div class="scope__bar">
+                  <span class="scope__id">FIG.01</span>
+                  <span class="scope__title">STEP · 一次请求的四段动作</span>
+                  <span class="scope__bar__sp"></span>
+                  <span class="scope__live" data-live><i></i><span>running</span></span>
+                </div>
+                <div class="scope__stage" data-stage></div>
+                <p class="readout" data-readout></p>
+                <div class="scope__ctrl">
+                  <button
+                    class="play"
+                    type="button"
+                    data-play
+                    data-state="paused"
+                    aria-pressed="false"
+                    aria-label="播放动画"
+                  >
+                    <svg class="icon-play" viewBox="0 0 9 10" aria-hidden="true">
+                      <path d="M0 0L9 5L0 10V0Z" fill="currentColor" />
+                    </svg>
+                    <svg class="icon-pause" viewBox="0 0 9 10" aria-hidden="true">
+                      <rect x="0" y="0" width="3" height="10" fill="currentColor" />
+                      <rect x="6" y="0" width="3" height="10" fill="currentColor" />
+                    </svg>
+                  </button>
+                  <div class="scrub">
+                    <div class="scrub__rail"><div class="scrub__fill" data-fill></div></div>
+                    <div class="scrub__segs" data-segs></div>
+                    <div class="scrub__knob" data-knob></div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1000"
+                      value="0"
+                      step="1"
+                      data-scrub
+                      aria-label="动画进度"
+                    />
+                  </div>
+                  <div class="speed" role="group" aria-label="播放速度">
+                    <button type="button" data-speed="0.5" aria-pressed="false">.5×</button>
+                    <button type="button" data-speed="1" aria-pressed="true">1×</button>
+                    <button type="button" data-speed="2" aria-pressed="false">2×</button>
+                  </div>
+                  <span class="time" data-time></span>
+                </div>
+              </figure>
+              <p class="sg-note">
+                标题栏 34px：左边 FIG 编号、中间标题、右边呼吸灯。面板里三层信息 —— 图形、读白、控件 ——
+                各占一行，不叠在一起。图注写在面板<strong>外面</strong>，用左线旁注，因为它是给人读的，
+                不是仪器读数。
+              </p>
+            </div>
+
+            <div class="sg-demo">
+              <span class="sg-demo__k">小结与自测 / 每节固定收尾</span>
+              <section class="recap">
+                <span class="recap__k">这一节只要记住三行</span>
+                <ol>
+                  <li>一次 step 固定四段：取输入 → 装配 prompt → 流式请求 → 执行 / 收尾。</li>
+                  <li>四段走完不等于结束。要动手就回到 loop 再来一圈。</li>
+                  <li>每个 step 都会重新装配一次 prompt，所以历史越长，这一步越贵。</li>
+                </ol>
+              </section>
+              <details class="check">
+                <summary><em>自测</em>模型既说了一句话、又要调用工具，会因此多花一次请求吗？</summary>
+                <p>
+                  不会。<b>一次请求可以同时产出文本和工具调用</b>。多花的那次请求来自「把工具结果再问一遍」，
+                  不是来自「同时说了话」。
+                </p>
+              </details>
+              <p class="sg-note">
+                小结固定三条，每条一个可验证的事实，不写「本节介绍了…」。自测只问一个问题，
+                答案必须是本节的关键判断，不是记忆题 —— 记不住的细节应该去查源码，不该靠自测背下来。
+              </p>
+            </div>
+
+            <div class="sg-demo">
+              <span class="sg-demo__k">节导航 / 悬浮在视口右侧，不进正文流</span>
+              <div class="sg-jump">
+                <span class="jump__b" aria-hidden="true"
+                  ><span class="jump__a">↑</span
+                  ><span class="jump__n">目录</span></span
+                >
+                <span class="jump__b" aria-hidden="true"
+                  ><span class="jump__a">↓</span
+                  ><span class="jump__n">2.2</span></span
+                >
+                <span class="sg-jump__l">悬停展开 →「2.2 · 一个回合可以有多次请求」</span>
+              </div>
+              <p class="sg-note">
+                每节末尾<strong>没有</strong>「上一节 / 下一节」块。右侧目录本来就常驻，
+                再给一遍是把同一件事说两次，而且每节都出现一次，读起来处处被打断。
+                改成贴在视口右侧的两个 46 × 30 方块（视口 ≥ 1340 才显示，版心外要留出 78px），
+                悬停展开小节名 —— 想跳的时候在，不想跳的时候不占版面。章尾仍保留 pager。
+              </p>
+              <p class="sg-note">
+                <strong>常驻面必须有字，不能只有箭头。</strong>两个上下箭头贴在滚动条旁边，
+                第一眼会被读成「页面滚动」，点下去却是跨小节跳转 —— 同一个手势两种结果，是最糟的歧义。
+                所以常驻面写「方向 + 节号」（<span class="mono">↑ 目录</span> /
+                <span class="mono">↓ 2.2</span>），把「跳哪儿」提前说出来，悬停再补全标题。
+              </p>
+            </div>
+          </section>
+
+          <!-- 06 ------------------------------------------------------------ -->
+          <section class="sg-sec" id="s6">
+            <div class="sg-sec__h">
+              <span class="sg-sec__n">06</span>
+              <h2>页面结构</h2>
+              <span class="eyebrow">structure</span>
+            </div>
+            <p class="sg-p">
+              每章同一副骨架。差异只允许出现在概念段之后 —— 读者靠骨架认路，靠差异理解内容。
+            </p>
+            <pre class="code"><code>第 0X 章 / 0X.Y
+├ eyebrow        第 0X 章 · 章名 — 0X.Y
+├ h1             一句话说清这一节在讲什么（不是章名复读）
+├ lede           为什么值得读，两行以内
+├ figure.scope   FIG.0N · 标题           ← 概念讲完才出现
+├ figcap         怎么用 / 怎么读 / 边界
+├ h2 (可选)      再分一层时才有
+├ pre.code       源码片段               ← 图之后才出现
+├ recap          三行，每行一个可验证的事实
+└ details.check  一个问题，答案是本节的关键判断</code></pre>
+            <p class="sg-note">
+              三条硬约束：<strong>一节只加一个新概念</strong>；<strong>图必须出现在概念之后、代码之前</strong>，
+              否则读者先看到现象却没有问题；<strong>图注必须回答「怎么用」</strong>，
+              而不是复述图里已经写着的字。
+            </p>
+            <p class="sg-note">
+              节与节之间没有分隔块：靠 H2 的 64px 上边距和前置的 28px 短线收尾，跳转交给右侧悬浮条。
+              正文流里只有内容，不放导航。
+            </p>
+          </section>
+
+          <!-- 07 ------------------------------------------------------------ -->
+          <section class="sg-sec" id="s7">
+            <div class="sg-sec__h">
+              <span class="sg-sec__n">07</span>
+              <h2>动效</h2>
+              <span class="eyebrow">motion</span>
+            </div>
+            <p class="sg-p">
+              一条 0 → 1 的连续时间轴，每一帧重算位置、长度、透明度。不是「每三秒换一次边框颜色」——
+              那是幻灯片，元素不移动、不生长，读者看不出因果。学习场景里<strong>可控</strong>比自动播放重要：
+              能暂停、能单步、能拖动、能改速、能点节点跳转。
+            </p>
+
+            <div class="sg-tl" role="img" aria-label="时间轴：四个相位、三个 STEP 分界，播放头停在 46%">
+              <i></i>
+              <span class="ph" style="left: 0"></span>
+              <span class="ph" style="left: 25%"></span>
+              <span class="ph" style="left: 33.3%"></span>
+              <span class="ph" style="left: 50%"></span>
+              <span class="ph" style="left: 66.6%"></span>
+              <span class="ph" style="left: 75%"></span>
+              <span class="sp" style="left: 33.3%"></span>
+              <span class="sp" style="left: 66.6%"></span>
+              <span class="hd" style="left: 46%"></span>
+              <b style="left: 0; transform: none">0</b>
+              <b style="left: 16.6%">STEP 1</b>
+              <b style="left: 50%">STEP 2</b>
+              <b style="left: 83%">STEP 3</b>
+              <b class="is-t" style="left: 46%">t = 0.46</b>
+              <b style="left: 100%; transform: translateX(-100%)">1</b>
+            </div>
+
+            <div class="sg-wrap">
+              <table class="sg-table">
+                <colgroup>
+                  <col style="width: 96px" />
+                  <col style="width: 290px" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>参数</th>
+                    <th>值</th>
+                    <th>为什么</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>时长</td>
+                    <td class="mono">step 11s / turn 15s</td>
+                    <td>够读完三行读白，又不至于等到不耐烦。</td>
+                  </tr>
+                  <tr>
+                    <td>驱动</td>
+                    <td class="mono">requestAnimationFrame</td>
+                    <td>每帧重算几何，所以信号真的在流动，而不是切换状态。</td>
+                  </tr>
+                  <tr>
+                    <td>缓动</td>
+                    <td class="mono">easeOut / easeInOut</td>
+                    <td>进场快、落位稳。CSS 侧用 <code>--ease</code> 一条曲线包全场。</td>
+                  </tr>
+                  <tr>
+                    <td>起播</td>
+                    <td class="mono">IntersectionObserver 0.4</td>
+                    <td>进入视口才播，离开即停。后台标签页不该烧 CPU。</td>
+                  </tr>
+                  <tr>
+                    <td>降级</td>
+                    <td class="mono">prefers-reduced-motion</td>
+                    <td>停在<strong>末帧</strong>而不是首帧 —— 末帧是完整的图，首帧是空的。</td>
+                  </tr>
+                  <tr>
+                    <td>刻线</td>
+                    <td class="mono">stepMarks = 相位起点</td>
+                    <td>轨道上的细刻和 STEP 按钮用同一组 t 算，点按钮才会正好停在刻线上。</td>
+                  </tr>
+                  <tr>
+                    <td>空格键</td>
+                    <td class="mono">视线中心仲裁</td>
+                    <td>两张图同时在视口里时，只作用于最靠近视线中心的那张。</td>
+                  </tr>
+                  <tr>
+                    <td>窄屏</td>
+                    <td class="mono">min-width 560 + 横滑</td>
+                    <td>
+                      等比缩进 430px 的屏幕，9px 字只剩 6.9px，图就从说明退化成装饰。宁可让人滑一下。
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="sg-note">
+              几何约束：<strong>等效字号 = 设计字号 × 容器宽 ÷ viewBox 宽</strong>。620px 的容器里，
+              560 的 viewBox 让 10px 变成 11px；640 的 viewBox 只剩 9.7px。先定容器，再定 viewBox ——
+              反过来做的结果就是「设计稿上很清楚，页面上糊成一团」。
+            </p>
+            <p class="sg-note">
+              时序图必须竖排（时间向下），每条消息独占一行。横排会把五个标签挤进 620px 的一行里，
+              标签只能压到 9px，中英文都得砍掉一半 —— 第二版的泳道图看不懂，根因是布局，不是配色。
+            </p>
+          </section>
+
+          <!-- 08 ------------------------------------------------------------ -->
+          <section class="sg-sec" id="s8">
+            <div class="sg-sec__h">
+              <span class="sg-sec__n">08</span>
+              <h2>文案</h2>
+              <span class="eyebrow">voice</span>
+            </div>
+            <p class="sg-p">
+              语气是「同事在旁边指着源码讲」，不是「课程在宣布知识点」。判断标准只有一条：
+              这句话能不能被验证。能，就留下；不能，就是气氛。
+            </p>
+
+            <div class="sg-wrap">
+              <table class="sg-table">
+                <thead>
+                  <tr>
+                    <th>要</th>
+                    <th>不要</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>短句，一句一个动作</td>
+                    <td>长句套从句，读完忘了主语</td>
+                  </tr>
+                  <tr>
+                    <td>术语先中文，括号英文：<code>回合（turn）</code></td>
+                    <td>直接甩缩写：TURN、LLM、CTX</td>
+                  </tr>
+                  <tr>
+                    <td>具体数字：4 段动作、84 行、3 处命中</td>
+                    <td>「多种」「若干」「高效」「强大」</td>
+                  </tr>
+                  <tr>
+                    <td>敢说「这里容易错」，并说错在哪一行</td>
+                    <td>「让我们一起探索吧」</td>
+                  </tr>
+                  <tr>
+                    <td>陈述句结尾，句号</td>
+                    <td>感叹号、emoji、🚀</td>
+                  </tr>
+                  <tr>
+                    <td>标题可以有一个比喻，正文第一段就把它翻译成机制</td>
+                    <td>比喻一路铺到底，读者记住画面忘了机制</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="sg-note">
+              现成的例子：「模型只会吐字。让它动手的，是 harness。」前半句是比喻，后半句立刻把责任交回给具体的一层程序。
+              比喻负责让人想读，机制负责让人读懂 —— 两者都不能缺席，也不能互相顶替。
+            </p>
+          </section>
+
+          <!-- 09 ------------------------------------------------------------ -->
+          <section class="sg-sec" id="s9">
+            <div class="sg-sec__h">
+              <span class="sg-sec__n">09</span>
+              <h2>红线</h2>
+              <span class="eyebrow">never</span>
+            </div>
+            <p class="sg-p">
+              每条都附了「为什么」。没有理由的禁令会在下一次迭代里被顺手破掉。
+            </p>
+
+            <ul class="sg-list">
+              <li>
+                <b>跨色相渐变</b> —— 按钮、标题、边框都不许。唯一允许的渐变是顶部 2px 进度条，
+                同色系两端，因为它表示「已读比例」，这个渐变是有数据的。
+              </li>
+              <li>
+                <b>玻璃拟态与多重大阴影</b> —— 层级用 1px 线和底色区分。阴影一旦出现，
+                就得解释是什么在发光，而页面上没有任何东西在发光。
+              </li>
+              <li>
+                <b>紫蓝配色</b> —— 这是「AI 产品」最饱和的视觉符号。读者第一眼就会把页面归到生成物里，
+                后面的内容再准也没用。
+              </li>
+              <li>
+                <b>居中大标题 + 副标题 + 两个按钮的首屏</b> —— 落地页语法。本站首屏是左对齐标题、
+                一段说明、一张结构图。
+              </li>
+              <li>
+                <b>圆角 ≥ 8px</b> —— 全站 2–3px。大圆角会把工程图变成 App 卡片，测量感立刻消失。
+              </li>
+              <li>
+                <b>字号只差 2px 的层级</b> —— 要么差 4px 以上，要么别分。差 2px 的层级读者分不出来，
+                只会觉得「有点乱」。
+              </li>
+              <li>
+                <b>emoji 当图标</b> —— 跨平台渲染不一致，在技术语境里像占位符。
+              </li>
+              <li>
+                <b>卡片套卡片</b> —— 一个页面最多一层容器，第二层用线不用框。<code>.scope</code>
+                是唯一的例外，因为它是「仪器」，不是「卡片」。
+              </li>
+              <li>
+                <b>没有含义的编号</b> —— 01 / 02 / 03 必须对应章节、顺序或测量值。
+                纯装饰的序号是 AI 味最重的细节之一。
+              </li>
+            </ul>
+          </section>
+
+          <!-- 10 ------------------------------------------------------------ -->
+          <section class="sg-sec" id="s10">
+            <div class="sg-sec__h">
+              <span class="sg-sec__n">10</span>
+              <h2>文件与走查</h2>
+              <span class="eyebrow">files</span>
+            </div>
+
+            <div class="sg-wrap">
+              <table class="sg-table">
+                <colgroup>
+                  <col style="width: 172px" />
+                  <col />
+                  <col style="width: 268px" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>文件</th>
+                    <th>职责</th>
+                    <th>改动前先想</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="mono">assets/site.css</td>
+                    <td>全部设计令牌与组件样式，亮/暗两套 token 在同一文件顶部。</td>
+                    <td>新颜色先问「能不能用已有的三级线解决」。</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">assets/figures.js</td>
+                    <td>两张图的几何与时间轴。所有坐标常量集中在 <code>S</code> / <code>T</code> 里。</td>
+                    <td>改坐标必须仍是 16 的整数倍。</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">assets/site.js</td>
+                    <td>主题、进度、术语浮层、双目录同步、阅读位置、术语检索。</td>
+                    <td>JS 里不写色值，只切 class。</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">chapter-0X.html</td>
+                    <td>正文。结构照第 06 节的骨架，不新增容器层级。</td>
+                    <td>新增组件前先看第 05 节有没有现成的。</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">styleguide.html</td>
+                    <td>本页。色卡从 computedStyle 读，改 token 后自动跟随。</td>
+                    <td>规范变了先改这里，再改页面。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="sg-sub">走查钩子</p>
+            <div class="sg-wrap">
+              <table class="sg-table">
+                <colgroup>
+                  <col style="width: 130px" />
+                  <col />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>参数</th>
+                    <th>作用</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="mono">?freeze=0.42</td>
+                    <td>把动画冻结在时间轴的 42%，用于截图核对某一帧的构图。</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">?tip=1</td>
+                    <td>展开第 2 个术语的浮层，检查弹出方向与避让。</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">?scroll=0.55</td>
+                    <td>滚到全文 55%，检查进度条、双目录高亮、吸顶位置。</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">?theme=light</td>
+                    <td>
+                      钉死主题。走查必须亮/暗各截一轮，不能靠机器当前的系统偏好 ——
+                      否则「暗色下标尺看不清」这类问题会一直被漏掉。
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="mono">?q=turn</td>
+                    <td>带着搜索结果打开术语表，链接可分享。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="sg-note">
+              验证方式：headless Chrome 截图，亮/暗两套，桌面 1280 与窄屏 500 各一轮。
+              注意 Chrome 桌面窗口最小 500px —— 390px 的截图是被裁切的结果，不是真实溢出，
+              别拿它下结论。
+            </p>
+          </section>
+
+          <footer class="sg__foot">
+            <span>观测台 v5 · 2026-11-07</span>
+            <span>与 docs/assets 同源 · 改样式先改这里</span>
+          </footer>
+        </div>
+      </div>
+    </main>
+
+    <script src="assets/site.js" defer></script>
+    <script src="assets/figures.js" defer></script>
+  </body>
+</html>

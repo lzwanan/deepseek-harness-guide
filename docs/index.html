@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DeepSeek Harness 导读 — 从零到能改源码</title>
+    <meta
+      name="description"
+      content="七章读完，你能自己写一个 DeepSeek Harness 最小插件。先看现象、再看机制、最后看源码。"
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+    <script>
+      /* 在首次绘制前定好主题，避免闪白 */
+      (function () {
+        try {
+          var m = localStorage.getItem("dsh-theme") || "auto";
+          var dark =
+            m === "dark" ||
+            (m === "auto" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          document.documentElement.dataset.mode = m;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body data-page="index.html">
+    <div
+      class="progress"
+      data-progress
+      role="progressbar"
+      aria-label="阅读进度"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    ></div>
+
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="brand" href="index.html">
+          <span class="brand__mark" aria-hidden="true"></span>
+          DeepSeek Harness 导读
+        </a>
+        <nav class="topnav" aria-label="站点导航">
+          <a href="index.html" aria-current="page">目录</a>
+          <a class="is-optional" href="glossary.html">术语表</a>
+          <a class="is-optional" href="styleguide.html">规范</a>
+          <a class="is-optional" href="https://github.com/lzwanan/deepseek-harness-guide" target="_blank" rel="noreferrer noopener">本仓库</a>
+          <a class="is-optional" href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noreferrer noopener">上游源码</a>
+          <button class="theme-toggle" type="button" data-theme-toggle>自动</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="home">
+      <section class="hero">
+        <div class="hero__text">
+          <p class="eyebrow">DeepSeek Harness · 导读</p>
+          <h1>模型只会吐字。<br />让它<em>动手</em>的，是 harness。</h1>
+          <p class="lede">
+            这是 DeepSeek
+            <span
+              class="term"
+              tabindex="0"
+              data-tip-key="harness"
+              data-tip="套在模型外面的那一层程序。模型只会输出文字，harness 负责把文字变成读文件、跑命令、改代码等真实动作，并把全过程记下来。"
+              >Harness</span
+            >
+            的导读，不是一个模型的使用手册。七章，从「它到底是什么」一路讲到「为什么这段代码你不能随便改」。每章只加一个新概念，配一个能看清因果的动画。
+          </p>
+          <div class="hero__meta">
+            <span>7 章</span>
+            <span>28 节</span>
+            <span>约 2 小时</span>
+            <span>对应 master</span>
+          </div>
+        </div>
+
+        <figure class="viz">
+          <div class="viz__cap">
+            <span class="eyebrow">结构 / harness 的位置</span>
+            <span class="eyebrow">fig.00</span>
+          </div>
+          <svg viewBox="0 0 340 316" role="img" aria-label="harness 夹在模型与外部世界之间的三层结构示意">
+            <rect x="46" y="6" width="248" height="50" rx="2" fill="none" stroke="var(--panel-line)"/>
+            <text x="62" y="28" font-family="var(--mono)" font-size="10" letter-spacing="1.6" fill="var(--panel-ink)">MODEL</text>
+            <text x="62" y="45" font-family="var(--sans)" font-size="10" fill="var(--panel-ink-3)">只产生 token</text>
+
+            <line x1="170" y1="56" x2="170" y2="96" stroke="var(--panel-line)" stroke-dasharray="2 3"/>
+            <circle class="viz__dot viz__dot--a" cx="170" cy="58" r="2" fill="var(--signal)"/>
+            <text x="180" y="72" font-family="var(--mono)" font-size="8" fill="var(--panel-ink-3)">tokens ↓</text>
+            <text x="180" y="86" font-family="var(--mono)" font-size="8" fill="var(--panel-ink-3)">tool call ↑</text>
+
+            <rect x="18" y="96" width="304" height="126" rx="2" fill="var(--signal-wash)" stroke="none"/>
+            <rect x="18" y="96" width="304" height="126" rx="2" fill="none" stroke="var(--panel-ink-4)" stroke-dasharray="4 3"/>
+            <text x="32" y="114" font-family="var(--mono)" font-size="9" letter-spacing="1.6" fill="var(--signal)">HARNESS</text>
+            <text x="308" y="114" text-anchor="end" font-family="var(--mono)" font-size="7.5" fill="var(--panel-ink-4)">THIS SITE</text>
+
+            <rect x="32" y="130" width="84" height="44" rx="2" fill="none" stroke="var(--panel-line)"/>
+            <text x="74" y="149" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--panel-ink)">loop</text>
+            <text x="74" y="164" text-anchor="middle" font-family="var(--sans)" font-size="8.5" fill="var(--panel-ink-3)">turn / step</text>
+
+            <rect x="128" y="130" width="84" height="44" rx="2" fill="none" stroke="var(--panel-line)"/>
+            <text x="170" y="149" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--panel-ink)">tools</text>
+            <text x="170" y="164" text-anchor="middle" font-family="var(--sans)" font-size="8.5" fill="var(--panel-ink-3)">注册与执行</text>
+
+            <rect x="224" y="130" width="84" height="44" rx="2" fill="none" stroke="var(--panel-line)"/>
+            <text x="266" y="149" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--panel-ink)">session</text>
+            <text x="266" y="164" text-anchor="middle" font-family="var(--sans)" font-size="8.5" fill="var(--panel-ink-3)">只追加日志</text>
+
+            <line x1="32" y1="192" x2="308" y2="192" stroke="var(--panel-line)"/>
+            <text x="32" y="210" font-family="var(--sans)" font-size="9" fill="var(--panel-ink-3)">插件在这里注册、被消费、被 dispose</text>
+
+            <line x1="170" y1="222" x2="170" y2="262" stroke="var(--panel-line)" stroke-dasharray="2 3"/>
+            <circle class="viz__dot viz__dot--b" cx="170" cy="224" r="2" fill="var(--signal)"/>
+            <text x="180" y="238" font-family="var(--mono)" font-size="8" fill="var(--panel-ink-3)">调用 ↓ 结果 ↑</text>
+
+            <rect x="46" y="262" width="248" height="50" rx="2" fill="none" stroke="var(--panel-line)"/>
+            <text x="62" y="284" font-family="var(--mono)" font-size="10" letter-spacing="1.6" fill="var(--panel-ink)">WORLD</text>
+            <text x="62" y="301" font-family="var(--sans)" font-size="10" fill="var(--panel-ink-3)">文件 · 命令 · 网络 · LSP</text>
+          </svg>
+          <div class="viz__foot">
+            <span class="eyebrow">读法</span>
+            <span class="eyebrow" style="letter-spacing: 0.02em; text-transform: none">全站只讲中间这一层</span>
+          </div>
+        </figure>
+      </section>
+
+      <div class="resume" data-resume hidden>
+        <span class="resume__dot" aria-hidden="true"></span>
+        <span class="resume__t" data-resume-text></span>
+        <a class="resume__a" data-resume-link href="chapter-02.html">继续 →</a>
+      </div>
+
+      <section class="index" aria-labelledby="chapters-title">
+        <div class="index__head">
+          <span class="eyebrow" id="chapters-title">目录 / index</span>
+          <span class="eyebrow">7 章 · 28 节</span>
+        </div>
+
+        <ol>
+          <li>
+            <a class="row row--live" href="chapter-01.html">
+              <span class="row__n">01</span>
+              <span>
+                <span class="row__t">它是什么 <span class="row__tag">4 节</span></span>
+                <span class="row__d">模型只吐字，harness 让它动手。先把这条边界划清楚，后面所有东西才站得住。</span>
+              </span>
+              
+              <span class="row__go">→</span>
+            </a>
+          </li>
+          <li>
+            <a class="row row--live" href="chapter-02.html">
+              <span class="row__n">02</span>
+              <span>
+                <span class="row__t">turn 与 step <span class="row__tag">3 节</span></span>
+                <span class="row__d">一次对话的完整生命周期：什么时候算一个回合，什么时候算一步。两处可交互动画。</span>
+              </span>
+              
+              <span class="row__go">→</span>
+            </a>
+          </li>
+          <li>
+            <a class="row row--live" href="chapter-03.html">
+              <span class="row__n">03</span>
+              <span>
+                <span class="row__t">Session 日志 <span class="row__tag">4 节</span></span>
+                <span class="row__d">只追加的事件流。它决定了回放、崩溃恢复，以及「模型到底能看到什么」。</span>
+              </span>
+              
+              <span class="row__go">→</span>
+            </a>
+          </li>
+          <li>
+            <div class="row">
+              <span class="row__n">04</span>
+              <span>
+                <span class="row__t">插件模型 <span class="row__tag">5 节</span><span class="soon">待补</span></span>
+                <span class="row__d"
+                  ><span
+                    class="term"
+                    tabindex="0"
+                    data-tip-key="ctx"
+                    data-tip="插件拿到的上下文对象。所有服务（工具、模型、文件系统）都挂在它上面，插件通过它注册和取用能力。"
+                    >ctx</span
+                  >
+                  服务容器、注册与注销。四百多个包靠什么拼在一起而不打架。</span
+                >
+              </span>
+              
+              <span class="row__go">→</span>
+            </div>
+          </li>
+          <li>
+            <div class="row">
+              <span class="row__n">05</span>
+              <span>
+                <span class="row__t">能力缝 <span class="row__tag">4 节</span><span class="soon">待补</span></span>
+                <span class="row__d"
+                  >接口、实现、消费者三件套。换一个
+                  <span
+                    class="term"
+                    tabindex="0"
+                    data-tip-key="provider"
+                    data-tip="某个能力的具体实现。比如 fs provider 决定了文件读写是走本地磁盘还是走远程沙箱。换掉它，依赖它的工具会跟着换。"
+                    >provider</span
+                  >，整个产品跟着变。</span
+                >
+              </span>
+              
+              <span class="row__go">→</span>
+            </div>
+          </li>
+          <li>
+            <div class="row">
+              <span class="row__n">06</span>
+              <span>
+                <span class="row__t">组装 <span class="row__tag">4 节</span><span class="soon">待补</span></span>
+                <span class="row__d"
+                  >从空工程到能跑的最小 dsh：插件、工具、适配器、<span
+                    class="term"
+                    tabindex="0"
+                    data-tip-key="bundle"
+                    data-tip="把一组插件打包成可复用的组合。装上就得到一整套能力，不用一个个手动注册。"
+                    >bundle</span
+                  >。</span
+                >
+              </span>
+              
+              <span class="row__go">→</span>
+            </div>
+          </li>
+          <li>
+            <div class="row">
+              <span class="row__n">07</span>
+              <span>
+                <span class="row__t">设计取舍 <span class="row__tag">4 节</span><span class="soon">待补</span></span>
+                <span class="row__d">可组合性、日志优先，以及为什么它必须允许破坏性变更。</span>
+              </span>
+              
+              <span class="row__go">→</span>
+            </div>
+          </li>
+        </ol>
+
+        <p class="index__flag">
+          <i aria-hidden="true"></i>
+          第一次来？从第 01 章开始读 —— 它只有四节，讲清一件事：模型没有手。
+        </p>
+      </section>
+      <footer class="site-foot">
+        非官方导读，与 DeepSeek 无关联。上游源码见
+        <a href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noreferrer noopener">deepseek-ai/deepseek-harness</a>（MIT）。
+        内容核对至 2026-11-04 的 master 提交 fcc0ad4；上游持续更新，以源码为准。
+      </footer>
+    </main>
+
+    <script src="assets/site.js" defer></script>
+  </body>
+</html>

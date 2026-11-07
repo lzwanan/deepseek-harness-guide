@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>术语表 — DeepSeek Harness 导读</title>
+    <meta
+      name="description"
+      content="本站出现的术语与英文名，一句话说清它是什么、在 dsh 里指哪件事。"
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+    <script>
+      (function () {
+        try {
+          var m = localStorage.getItem("dsh-theme") || "auto";
+          var dark =
+            m === "dark" ||
+            (m === "auto" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          document.documentElement.dataset.mode = m;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body data-page="glossary.html">
+    <div
+      class="progress"
+      data-progress
+      role="progressbar"
+      aria-label="阅读进度"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    ></div>
+
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="brand" href="index.html">
+          <span class="brand__mark" aria-hidden="true"></span>
+          DeepSeek Harness 导读
+        </a>
+        <nav class="topnav" aria-label="站点导航">
+          <a href="index.html">目录</a>
+          <a class="is-optional" href="glossary.html" aria-current="page">术语表</a>
+          <a class="is-optional" href="styleguide.html">规范</a>
+          <a class="is-optional" href="https://github.com/lzwanan/deepseek-harness-guide" target="_blank" rel="noreferrer noopener">本仓库</a>
+          <a class="is-optional" href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noreferrer noopener">上游源码</a>
+          <button class="theme-toggle" type="button" data-theme-toggle>自动</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="glo">
+      <div class="glo__head">
+        <p class="eyebrow">术语表 / glossary</p>
+        <h1>这些词，一句话说清</h1>
+        <p>
+          正文里带<span class="term" data-tip-key="虚线" data-tip="页面里凡是英文或专业概念，下面都有淡青虚线；鼠标移上去、或按 Tab 聚焦，就会弹出解释。">虚线</span>的词，悬停就能看到解释。
+          这一页把它们集中起来，方便回头查、也方便对照源码里的命名。
+        </p>
+
+        <label class="glo__search">
+          <input
+            type="search"
+            placeholder="搜术语，中英文都行"
+            autocomplete="off"
+            spellcheck="false"
+            data-glo-search
+            aria-label="搜索术语"
+          />
+          <kbd>/</kbd>
+        </label>
+      </div>
+
+      <section class="glo__group" data-glo-group>
+        <header class="glo__gh">
+          <span class="glo__gl">01 / 基本结构</span>
+          <span class="glo__gl" data-glo-count>5 条</span>
+        </header>
+        <ul class="glo__list">
+          <li class="glo__item" id="harness" data-glo-item="harness 框架 宿主 外层 模型 缰绳">
+            <span class="glo__term">harness</span>
+            <span class="glo__desc"
+              ><b>套在模型外面的那层程序。</b>模型只输出文字，harness
+              负责把文字变成读文件、跑命令、改代码这些真实动作，并把全过程记下来。本站讲的就是这一层。</span
+            >
+            <span class="glo__src">全书</span>
+          </li>
+
+          <li class="glo__item" id="model" data-glo-item="model 模型 推理 预测 token">
+            <span class="glo__term">model</span>
+            <span class="glo__desc"
+              ><b>只做一件事：给定上下文，预测接下来的 token。</b>它没有手，不能读文件、不能执行命令，也不会自己记住上一步干了什么——记忆是 harness
+              喂给它的。</span
+            >
+            <span class="glo__src">01 · 它是什么</span>
+          </li>
+
+          <li class="glo__item" id="token" data-glo-item="token 词元 分词 计费">
+            <span class="glo__term">token</span>
+            <span class="glo__desc"
+              ><b>模型处理文本的最小单位。</b>一个汉字大约 1–2 个 token，一个英文单词大约
+              1 个。上下文长度、费用、流式输出的速度，都按 token 计算而不是按字数。</span
+            >
+            <span class="glo__src">02 · 一次请求</span>
+          </li>
+
+          <li class="glo__item" id="prompt" data-glo-item="prompt 提示 词 装配 系统提示">
+            <span class="glo__term">prompt</span>
+            <span class="glo__desc"
+              ><b>每次请求发给模型的完整输入。</b>包括系统提示、历史消息、工具清单。关键点是它<b>每次都要重新装配</b>——不是一份一直存在的对话记录。</span
+            >
+            <span class="glo__src">02 · 一次请求</span>
+          </li>
+
+          <li class="glo__item" id="context" data-glo-item="context 上下文 窗口 可见范围">
+            <span class="glo__term">context</span>
+            <span class="glo__desc"
+              ><b>模型这一次能看到的全部内容。</b>它是一次性的、有上限的。超过窗口就得裁剪或摘要，这也解释了为什么长会话会「忘事」。</span
+            >
+            <span class="glo__src">02 · 一次请求</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="glo__group" data-glo-group>
+        <header class="glo__gh">
+          <span class="glo__gl">02 / 循环与生命周期</span>
+          <span class="glo__gl" data-glo-count>5 条</span>
+        </header>
+        <ul class="glo__list">
+          <li class="glo__item" id="turn" data-glo-item="turn 回合 一问一答 生命周期">
+            <span class="glo__term">turn</span>
+            <span class="glo__desc"
+              ><b>一个回合。</b>从你按下回车开始，到模型表示「没有更多要做的」为止。一个 turn
+              里可以包含 0 到多个 step。它不是「一问一答」，而是「一次输入引发的全部工作」。</span
+            >
+            <span class="glo__src">02 · 2.2</span>
+          </li>
+
+          <li class="glo__item" id="step" data-glo-item="step 一步 请求 循环">
+            <span class="glo__term">step</span>
+            <span class="glo__desc"
+              ><b>一步，等于一次模型请求。</b>装配 prompt → 请求 → 可能调用工具 →
+              收尾。连续调三次工具，就是三个 step、一个 turn。</span
+            >
+            <span class="glo__src">02 · 2.1</span>
+          </li>
+
+          <li class="glo__item" id="tool-call" data-glo-item="tool call 工具调用 函数调用 function calling">
+            <span class="glo__term">tool call</span>
+            <span class="glo__desc"
+              ><b>模型说「我要调用某个工具」的那句话。</b>模型本身不执行，它只是输出一个结构化的意图；真正跑的是
+              harness 里的工具层，结果再回给模型。</span
+            >
+            <span class="glo__src">02 · 2.3</span>
+          </li>
+
+          <li class="glo__item" id="loop" data-glo-item="loop 循环 驱动 反复请求">
+            <span class="glo__term">loop</span>
+            <span class="glo__desc"
+              ><b>turn 内部那个「请求 → 执行 → 再请求」的圈。</b>它决定这个回合还要不要再问一次模型。出口只有一个：没有工具要跑，且没有新输入。</span
+            >
+            <span class="glo__src">02 · 2.3</span>
+          </li>
+
+          <li class="glo__item" id="pre-step" data-glo-item="agent/pre-step 钩子 装配 生命周期事件">
+            <span class="glo__term">agent/pre-step</span>
+            <span class="glo__desc"
+              ><b>每个 step 开始前的一个插口。</b>系统提示、工具清单、历史消息在这一刻被拼成这次请求。想给模型「临时补一句上下文」，通常挂在这里。</span
+            >
+            <span class="glo__src">02 · 2.1</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="glo__group" data-glo-group>
+        <header class="glo__gh">
+          <span class="glo__gl">03 / 记忆与日志</span>
+          <span class="glo__gl" data-glo-count>4 条</span>
+        </header>
+        <ul class="glo__list">
+          <li class="glo__item" id="session" data-glo-item="session 会话 日志 记录">
+            <span class="glo__term">session</span>
+            <span class="glo__desc"
+              ><b>一次会话的全部记录。</b>它不是一段聊天文本，而是一串带顺序的事件。聊天的样子是从这串事件「渲染」出来的。</span
+            >
+            <span class="glo__src">03 · Session 日志</span>
+          </li>
+
+          <li class="glo__item" id="event" data-glo-item="event 事件 日志 结构化">
+            <span class="glo__term">event</span>
+            <span class="glo__desc"
+              ><b>日志里的一条结构化记录。</b>用户说话、模型吐字、工具执行、回合结束，各是一条事件。带类型、带顺序、带负载。</span
+            >
+            <span class="glo__src">03 · Session 日志</span>
+          </li>
+
+          <li class="glo__item" id="append-only" data-glo-item="append only 只追加 不可变 历史">
+            <span class="glo__term">append-only</span>
+            <span class="glo__desc"
+              ><b>只往后写，不修改已有记录。</b>好处是任何时刻的状态都能被重算出来，坏处是格式一旦定错，只能靠迁移追加修正——这也是它敢做破坏性变更的底气。</span
+            >
+            <span class="glo__src">03 · Session 日志</span>
+          </li>
+
+          <li class="glo__item" id="replay" data-glo-item="replay 回放 重建 重放">
+            <span class="glo__term">replay</span>
+            <span class="glo__desc"
+              ><b>把事件按顺序再放一遍。</b>用来复现一次会话、调试 agent 的判断，或者验证改动前后的行为差异。前提就是日志只追加。</span
+            >
+            <span class="glo__src">03 · Session 日志</span>
+          </li>
+
+          <li class="glo__item" id="surface" data-glo-item="surface 表面 视图 派生 投影 derivemessages">
+            <span class="glo__term">surface / 表面</span>
+            <span class="glo__desc"
+              ><b>从日志投影出来、模型真正看得见的那一层。</b>日志是事实，surface 是视图：
+              只由五种消息事件构成，每次请求前现算。压缩改的是它，不是日志。</span
+            >
+            <span class="glo__src">03 · Session 日志</span>
+          </li>
+
+          <li class="glo__item" id="compaction" data-glo-item="compaction compress 压缩 摘要 上下文 遮蔽 replace">
+            <span class="glo__term">compaction / 压缩</span>
+            <span class="glo__desc"
+              ><b>上下文快满时，把较早的历史换成一条摘要。</b>它在日志里是一条 <code>replace</code>
+              事件，把被摘要的条目从「模型可见」这一层遮蔽掉——原记录仍然保留，所以之后还能 fork 回去。</span
+            >
+            <span class="glo__src">03 · Session 日志</span>
+          </li>
+
+          <li class="glo__item" id="fork" data-glo-item="fork 分叉 分支 复制 前缀 会话">
+            <span class="glo__term">fork</span>
+            <span class="glo__desc"
+              ><b>从一个会话的精确前缀长出另一条会话。</b>复制的是事件前缀，不是「当前状态」——
+              所以父会话之后发生的事不会跟过来，未闭合的工具调用还会被补上一条恢复结果。</span
+            >
+            <span class="glo__src">03 · Session 日志</span>
+          </li>
+
+          <li class="glo__item" id="kv-cache" data-glo-item="kv cache kvcache 缓存 前缀 复用 计费">
+            <span class="glo__term">KV cache</span>
+            <span class="glo__desc"
+              ><b>模型服务缓存「相同前缀」的计算结果，命中就不重算。</b>这就是为什么只追加的日志更省：
+              历史越长，前缀越能复用。压缩一旦发生，从第一条被遮蔽的消息起，缓存全部失效。</span
+            >
+            <span class="glo__src">03 · Session 日志</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="glo__group" data-glo-group>
+        <header class="glo__gh">
+          <span class="glo__gl">04 / 插件与组装</span>
+          <span class="glo__gl" data-glo-count>6 条</span>
+        </header>
+        <ul class="glo__list">
+          <li class="glo__item" id="ctx" data-glo-item="ctx context 上下文 容器 服务">
+            <span class="glo__term">ctx</span>
+            <span class="glo__desc"
+              ><b>插件拿到的上下文对象。</b>工具、模型、文件系统这些服务都挂在它上面。插件通过它注册能力、取用别人的能力，也通过它声明卸载时该回收什么。</span
+            >
+            <span class="glo__src">04 · 插件模型</span>
+          </li>
+
+          <li class="glo__item" id="plugin" data-glo-item="plugin 插件 模块 扩展">
+            <span class="glo__term">plugin</span>
+            <span class="glo__desc"
+              ><b>一个可以装上、也可以拔掉的单元。</b>装上时向 ctx 注册服务，拔掉时释放自己占的东西。dsh
+              的几百个包，基本都是插件。</span
+            >
+            <span class="glo__src">04 · 插件模型</span>
+          </li>
+
+          <li class="glo__item" id="provider" data-glo-item="provider 实现 适配器 adapter">
+            <span class="glo__term">provider</span>
+            <span class="glo__desc"
+              ><b>某个能力的具体实现。</b>比如 fs provider 决定文件读写是走本地磁盘还是走远程沙箱。换掉它，依赖它的工具会一起换掉。</span
+            >
+            <span class="glo__src">05 · 能力缝</span>
+          </li>
+
+          <li class="glo__item" id="seam" data-glo-item="seam 能力缝 接口 消费者 解耦">
+            <span class="glo__term">seam / 能力缝</span>
+            <span class="glo__desc"
+              ><b>接口 + 实现 + 消费者，三件套才算一条缝。</b>有了缝，才能只换中间那块而不动两端。没有缝的地方，任何改动都会变成一个全局搜索任务。</span
+            >
+            <span class="glo__src">05 · 能力缝</span>
+          </li>
+
+          <li class="glo__item" id="bundle" data-glo-item="bundle 打包 组合 预设 集合">
+            <span class="glo__term">bundle</span>
+            <span class="glo__desc"
+              ><b>把一组插件打包成可复用的组合。</b>装上就得到一整套能力，不用一个个手动注册。换 bundle 相当于换一个产品形态。</span
+            >
+            <span class="glo__src">06 · 组装</span>
+          </li>
+
+          <li class="glo__item" id="dispose" data-glo-item="dispose 卸载 回收 清理 生命周期">
+            <span class="glo__term">dispose</span>
+            <span class="glo__desc"
+              ><b>插件被卸载时的清理动作。</b>关掉监听、释放句柄、移除注册的键。写插件最容易漏的一步——漏了不会立刻报错，只会在热重载时积累成越来越慢。</span
+            >
+            <span class="glo__src">04 · 插件模型</span>
+          </li>
+        </ul>
+      </section>
+
+      <p class="glo__empty" data-glo-empty hidden>没有匹配的术语。换个词试试，中英文都行。</p>
+
+      <a class="glo__back" href="index.html">← 回到目录</a>
+    </main>
+
+    <script src="assets/site.js" defer></script>
+  </body>
+</html>

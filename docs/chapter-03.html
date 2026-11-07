@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>先写下来，再谈别的 — DeepSeek Harness 导读</title>
+    <meta
+      name="description"
+      content="Session 是一条只追加的事件日志：模型历史、回放、fork 都从它派生。看懂这条日志，才能看懂压缩与崩溃恢复。"
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+    <script>
+      (function () {
+        try {
+          var m = localStorage.getItem("dsh-theme") || "auto";
+          var dark =
+            m === "dark" ||
+            (m === "auto" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          document.documentElement.dataset.mode = m;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body data-page="chapter-03.html" data-chapter="第 03 章 · Session 日志">
+    <div
+      class="progress"
+      data-progress
+      role="progressbar"
+      aria-label="阅读进度"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    ></div>
+
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="brand" href="index.html">
+          <span class="brand__mark" aria-hidden="true"></span>
+          DeepSeek Harness 导读
+        </a>
+        <nav class="topnav" aria-label="站点导航">
+          <a href="index.html">目录</a>
+          <a class="is-optional" href="glossary.html">术语表</a>
+          <a class="is-optional" href="styleguide.html">规范</a>
+          <a class="is-optional" href="https://github.com/lzwanan/deepseek-harness-guide" target="_blank" rel="noreferrer noopener">本仓库</a>
+          <a class="is-optional" href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noreferrer noopener">上游源码</a>
+          <button class="theme-toggle" type="button" data-theme-toggle>自动</button>
+        </nav>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="side" aria-label="章节目录">
+        <div class="side__group">
+          <p class="eyebrow">七章 · 从现象到源码</p>
+          <ul class="sidetree sidetree--all">
+            <li>
+              <a href="chapter-01.html"><span class="n">01</span><span>它是什么</span></a>
+            </li>
+            <li>
+              <a href="chapter-02.html"><span class="n">02</span><span>turn 与 step</span></a>
+            </li>
+
+            <li class="is-open">
+              <a href="#s1"><span class="n">03</span><span>Session 日志</span></a>
+              <ul class="sidetree__sub">
+                <li class="is-current">
+                  <a href="#s1"
+                    ><span class="n">3.1</span><span>先写下来，再谈别的</span></a
+                  >
+                </li>
+                <li>
+                  <a href="#s2"
+                    ><span class="n">3.2</span><span>模型看到的是派生出来的</span></a
+                  >
+                </li>
+                <li>
+                  <a href="#s3"
+                    ><span class="n">3.3</span><span>进程死了，日志还在</span></a
+                  >
+                </li>
+                <li>
+                  <a href="#s4"
+                    ><span class="n">3.4</span><span>只追加的代价</span></a
+                  >
+                </li>
+              </ul>
+            </li>
+
+            <li>
+              <a class="is-locked"
+                ><span class="n">04</span
+                ><span>插件模型<span class="soon">待补</span></span></a
+              >
+            </li>
+            <li>
+              <a class="is-locked"
+                ><span class="n">05</span
+                ><span>能力缝<span class="soon">待补</span></span></a
+              >
+            </li>
+            <li>
+              <a class="is-locked"
+                ><span class="n">06</span
+                ><span>组装<span class="soon">待补</span></span></a
+              >
+            </li>
+            <li>
+              <a class="is-locked"
+                ><span class="n">07</span
+                ><span>设计取舍<span class="soon">待补</span></span></a
+              >
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+      <article class="doc">
+        <p class="eyebrow">第 3 章 · <i>Session</i> 日志 — 3.1</p>
+        <h1 id="s1">先写下来，再谈别的</h1>
+        <p class="lede">
+          模型没有记忆。harness 之所以看起来记得住，是因为它把发生过的事一条条写进了日志 ——
+          而「记忆」只是这份日志算出来的一个视图。
+        </p>
+
+        <p>
+          这个包叫 <code>dsh-session</code>，它做的事只有一件：维护一条只追加的事件日志。
+          会话里发生的每件事 —— 用户说了话、模型回了话、工具被调用、上下文被压缩、标题被改 ——
+          都是日志里的一行。没有「修改某一行」，也没有「删除某一行」，要表达变化，就再追加一条。
+        </p>
+
+        <p class="eyebrow code__cap">packages/core/session/src/types.ts</p>
+        <pre class="code"><code>type:  'user/message'              // 事件类型，词汇表里的一种
+seq:   7                          // 会话内单调递增，没有空洞
+time:  1730953200000              // Unix epoch 毫秒
+data:  { role, content, source }  // 该类型自己的载荷
+ignorable?: true                  // 不认识的类型，能不能安全跳过</code></pre>
+
+        <p>
+          词汇表里有 <b>60 多种事件</b>（<code>KNOWN_SESSION_EVENT_TYPES</code>）。
+          但只有五种会变成模型看得见的消息：<code>system/message</code>、
+          <code>developer/message</code>、<code>user/message</code>、
+          <code>assistant/message</code>、<code>tool/result</code>。其余五十多种都是记录 ——
+          这一步开没开、工具调用了几次、压缩发生在第几轮。
+        </p>
+
+        <p>
+          追加不是随便塞。每条事件进来时，先做一次
+          <span
+            class="term"
+            tabindex="0"
+            data-tip-key="lossless-json"
+            data-tip="无损 JSON 快照：每个嵌套值只读取、校验、复制一次，所以带状态的 getter 没法对校验说一套、对存储说另一套。"
+            >无损 JSON 快照</span
+          >
+          并冻结，再检查写权限，最后才提交、通知观察者。BigInt、循环引用、稀疏数组、<code>-0</code>
+          这类存不住原样的值，会在追加这一步就被拒绝 —— 而不是等到落盘时才发现。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>Session 是一条只追加的事件日志，<code>seq</code> 单调递增，没有改和删两个操作。</li>
+            <li>六十多种事件里只有五种会变成消息；日志比对话长，是常态而不是异常。</li>
+            <li>追加前会做无损 JSON 快照 —— 写不进去的值在入口就被挡住，不会流到存储层。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>事件里能不能塞一个 <code>Date</code> 对象？</summary>
+          <p>
+            不能。日志只接受<b>无损 JSON</b>，<code>Date</code> 会被转成字符串或直接拒绝 ——
+            因为「读回来和写进去不是同一个值」的记录，会让重建出来的历史不可信。时间统一用
+            <code>time</code> 这个 epoch 毫秒字段表达。
+          </p>
+        </details>
+
+        <h2 id="s2">模型看到的是派生出来的</h2>
+        <p>
+          模型不读日志。每次请求之前，harness 把日志投影成一份消息数组，这份投影才是模型看到的「历史」。
+          投影的入口是 <code>deriveMessages()</code>：增量、带缓存、每次返回一个新数组。
+        </p>
+
+        <p>
+          哪条事件能进这份历史，由一个叫 <code>surfaceOp</code> 的字段决定。它只有两种取值：
+          接在尾部，或者遮蔽一段。压缩就是后者 —— 这也是为什么压缩之后模型「忘了」前半段，
+          而日志里那些条目一条都没少。
+        </p>
+
+        <figure class="scope" id="fig-1" data-figure="log">
+          <div class="scope__bar">
+            <span class="scope__id">FIG.01</span>
+            <span class="scope__title">LOG · 日志只增，历史会缩</span>
+            <span class="scope__bar__sp"></span>
+            <span class="scope__live" data-live><i></i><span>running</span></span>
+          </div>
+          <div class="scope__stage" data-stage></div>
+          <p class="readout" data-readout></p>
+          <div class="scope__ctrl">
+            <button
+              class="play"
+              type="button"
+              data-play
+              data-state="paused"
+              aria-pressed="false"
+              aria-label="播放动画"
+            >
+              <svg class="icon-play" viewBox="0 0 9 10" aria-hidden="true">
+                <path d="M0 0L9 5L0 10V0Z" fill="currentColor" />
+              </svg>
+              <svg class="icon-pause" viewBox="0 0 9 10" aria-hidden="true">
+                <rect x="0" y="0" width="3" height="10" fill="currentColor" />
+                <rect x="6" y="0" width="3" height="10" fill="currentColor" />
+              </svg>
+            </button>
+            <div class="scrub">
+              <div class="scrub__rail"><div class="scrub__fill" data-fill></div></div>
+              <div class="scrub__segs" data-segs></div>
+              <div class="scrub__knob" data-knob></div>
+              <input
+                type="range"
+                min="0"
+                max="1000"
+                value="0"
+                step="1"
+                data-scrub
+                aria-label="动画进度"
+              />
+            </div>
+            <div class="speed" role="group" aria-label="播放速度">
+              <button type="button" data-speed="0.5" aria-pressed="false">.5×</button>
+              <button type="button" data-speed="1" aria-pressed="true">1×</button>
+              <button type="button" data-speed="2" aria-pressed="false">2×</button>
+            </div>
+            <span class="time" data-time></span>
+          </div>
+        </figure>
+        <p class="figcap">
+          左列是日志，右列是模型历史。注意两件事：八条事件只产出四条消息；压缩之后右边塌成两行，左边一条没少。
+          拖到 ④ 那一帧，看得最清楚。
+        </p>
+
+        <p class="eyebrow code__cap">packages/core/session/src/types.ts · SurfaceOp</p>
+        <pre class="code"><code>// 追加：接在表面尾部 —— 日常的用户 / 模型 / 工具消息都走这条
+{ surfaceOp: 'append' }
+
+// 替换：遮蔽表面上 0…4 这一段（两个端点都包含）
+{ surfaceOp: { op: 'replace', startSeq: 0, endSeq: 4 } }</code></pre>
+
+        <p>
+          替换有一条硬规矩：新节点必须用 <code>sourceEventSeqs</code> 把<b>被遮蔽的每一个节点</b>都列出来。
+          少列一个，这条追加会被直接拒绝。这样做的原因是审计 ——
+          任何一条被隐藏的消息，都能顺着引用找到它原来在哪。
+        </p>
+
+        <p>
+          代价是双向的。好处是 token 立刻少了；坏处是
+          <span
+            class="term"
+            tabindex="0"
+            data-tip-key="kv-cache"
+            data-tip="模型服务的 KV Cache 能复用相同前缀的计算结果。替换会让「从被遮蔽的第一条消息」开始的前缀失效，之后的都要重算。"
+            >KV cache</span
+          >
+          从第一条被遮蔽的消息起失效 —— 前缀变了，后面的计算全要重来。会话表面只追加时前缀永远可复用，
+          一旦压缩，这一次的省 token 要拿一次重新计算来换。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li><code>deriveMessages()</code> 每次从日志投影历史：日志是事实，历史是视图。</li>
+            <li><code>surfaceOp</code> 只有两种：<code>append</code> 接尾部，<code>replace</code> 遮蔽一段。</li>
+            <li>压缩是 replace 的生产者：模型少看了内容，日志一条没少 —— 所以之后还能回放、还能 fork。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>压缩之后，被摘要掉的那几条还能找回来吗？</summary>
+          <p>
+            能。<code>replace</code> 只是让它们不再进入后续请求，原记录仍在日志里。
+            想把它们重新拿回来，就从压缩发生之前的那个位置
+            <code>fork</code> 一条新会话 —— 这也正是 fork 只需要「一个边界」的原因。
+          </p>
+        </details>
+
+        <h2 id="s3">进程死了，日志还在</h2>
+        <p>
+          只追加的日志还有一个不太起眼的好处：崩溃之后，它自己就能说清「发生过什么」。
+          不需要额外的状态文件，也不需要优雅退出。
+        </p>
+
+        <p>
+          麻烦在于，事件是按发生顺序写的，而一次工具调用横跨三条事件：模型说要调、harness 记下
+          <code>tool/call</code>、结果写成 <code>tool/result</code>。进程如果死在中间，日志就会留下三种残缺：
+          模型声明了调用但没有 <code>tool/call</code>；有 <code>tool/call</code> 但没有结果；
+          turn 没有关闭。
+        </p>
+
+        <p>
+          <code>ToolCallRecovery</code> 干的就是这件事：它从已提交事件里跟踪「还没有结果的请求」，
+          不额外保存任何状态。实时步骤、崩溃恢复、fork 种子构造共用同一套逻辑 ——
+          区别只在文案。
+        </p>
+
+        <p class="eyebrow code__cap">packages/core/session/src/repair.ts</p>
+        <pre class="code"><code><b>TOOL_NOT_STARTED</b>
+  The tool call was interrupted before the Harness recorded it as started.
+  Retry it if it is still needed.
+
+<b>TOOL_OUTCOME_UNKNOWN</b>
+  The tool call was interrupted after it was recorded, but no result was
+  durably recorded. Its outcome is unknown. Decide whether to retry from the
+  tool semantics: retry only if the operation is read-only or idempotent;
+  if it may have side effects, first verify external state or ask the user.
+  Do not retry blindly.</code></pre>
+
+        <p>
+          第二条文案长得反常，是刻意的。日志只能证明「启动了」，证明不了「执行到哪儿」——
+          而工具可能有副作用。所以恢复策略不是替模型猜，而是要求它先去看外部状态：
+          只读或幂等的操作可以直接重试，有副作用的先查再动。
+        </p>
+
+        <p>
+          还有一个反直觉的约定：读到不认识的 <code>type</code>，而且这条事件没有
+          <code>ignorable</code> 标记，读取器必须<b>拒绝重建整个会话</b>，而不是跳过它。
+          因为一条看不懂的事件可能改变后面所有事件的解释方式。宁可报错让人来看，
+          也不要静默地还原出一个被掏空的会话 —— 默认「必需」，遗忘标记只会多报错，不会少数据。
+        </p>
+
+        <p>
+          <span
+            class="term"
+            tabindex="0"
+            data-tip-key="fork"
+            data-tip="从某个会话的精确前缀复制出一条新会话。复制的是事件前缀，不是「当前状态」—— 所以父会话之后发生的事不会跟过来。"
+            >fork</span
+          >
+          就建在这套机制上：<code>ctx.sessions.fork(source, boundary?, childSessionId?)</code>
+          复制包含切点的精确前缀，然后由 <code>buildForkSeed</code> 补上缺失的工具结果、
+          以 <code>forked</code> 为原因关闭未闭合的步骤和回合。<code>inheritedEventCount</code>
+          只统计复制过来的那段前缀 —— 收尾事件属于子会话自己。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>崩溃恢复不靠「记住」，靠重放日志里没闭合的调用。</li>
+            <li>合成结果分两种：没启动（可以直接重试）和启动过但没结果（先验证外部状态）。</li>
+            <li>遇到不认识的类型又没有 <code>ignorable</code>，读取器拒绝重建 —— 宁可报错，不可静默丢事件。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>日志里有一条 <code>tool/call</code> 却没有 <code>tool/result</code>，模型会被告知什么？</summary>
+          <p>
+            <code>TOOL_OUTCOME_UNKNOWN</code>：结果未知。并且会明确要求它<b>不要盲目重试</b> ——
+            只读或幂等的操作可以直接重来，可能有副作用的先检查外部状态或询问用户。
+            另一种情况（模型声明了调用但没记 <code>tool/call</code>）是 <code>TOOL_NOT_STARTED</code>，
+            可以直接重试。
+          </p>
+        </details>
+
+        <h2 id="s4">只追加的代价</h2>
+        <p>
+          只追加换来的东西很实在：任何一个过去的时刻都能精确重放；任何一段历史都能切出来 fork；
+          每个请求都能被独立重建 —— 因为 <code>request/header</code> 会把完整的请求封装
+          在变化时写成快照，而不是靠「当前配置」去猜。
+        </p>
+
+        <p>代价也很实在，而且都能在源码里看到痕迹：</p>
+
+        <ul>
+          <li>
+            <b>存储只增。</b>一次长会话的日志，远大于它此刻的上下文窗口 ——
+            被压缩掉的条目仍然躺着。所以 <code>request/header</code> 只在封装真正变化时才写新快照，
+            其余轮次继承最新的那份。
+          </li>
+          <li>
+            <b>格式会漂移。</b>会话格式有版本号，读写双方还得就「哪些事件是必需的」达成一致。
+            <code>ignorable</code> 和 <code>SESSION_FORMAT_VERSION</code> 就是为这件事存在的。
+          </li>
+          <li>
+            <b>只有分支，没有树。</b>当前只支持基于边界的 fork；pi 那种「任意消息都能长出子树」的条目树
+            被推迟了 —— 除非真有人需要比边界 fork 更强的能力。
+          </li>
+        </ul>
+
+        <p>
+          最后一件容易误会的事：<b>默认情况下会话只在内存里</b>。持久化不是这个包做的，
+          而是由订阅 <code>session/event</code> 流的插件叠加。需要「确定已经落盘」这个屏障时，
+          得显式等 <code>ctx.sessions.flush(session)</code> —— 别假定延后写入已经排空。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>只追加换来了回放、fork、审计，以及「每个请求都能被精确重建」。</li>
+            <li>代价是存储只增和格式兼容负担：<code>ignorable</code> 与格式版本就是为此存在。</li>
+            <li>只有 fork，没有会话树；持久化靠订阅 <code>session/event</code> 的插件，默认在内存。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>装好 harness 直接跑，关掉进程后会话还在吗？</summary>
+          <p>
+            默认不在了。<code>dsh-session</code> 只在内存里持有 <code>Session</code>，
+            持久化由订阅 <code>session/event</code> 的插件负责。要确认已经落盘，等
+            <code>ctx.sessions.flush(session)</code>，而不是假设写入已经完成。
+          </p>
+        </details>
+
+        <nav class="pager" aria-label="章节导航">
+          <a class="pager__item" href="chapter-02.html">
+            <span class="pager__k">← 上一章</span>
+            <span class="pager__t">02 · turn 与 step</span>
+          </a>
+          <span class="pager__item pager__next is-off">
+            <span class="pager__k">下一章 →</span>
+            <span class="pager__t">04 插件模型 · 待补</span>
+          </span>
+        </nav>
+      </article>
+
+      <aside class="toc" aria-label="本页目录">
+        <p class="eyebrow">本页</p>
+        <ul>
+          <li><a data-n="3.1" href="#s1" class="is-active">先写下来，再谈别的</a></li>
+          <li><a data-n="3.2" href="#s2">模型看到的是派生出来的</a></li>
+          <li><a data-n="3.3" href="#s3">进程死了，日志还在</a></li>
+          <li><a data-n="3.4" href="#s4">只追加的代价</a></li>
+        </ul>
+        <hr class="toc__rule" />
+        <p class="eyebrow">涉及模块</p>
+        <ul class="toc__modules">
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/core/session"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/core/session"
+              >core/session</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/compaction"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/compaction"
+              >compaction</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/session-query"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/session-query"
+              >session-query</a
+            >
+          </li>
+        </ul>
+        <p class="eyebrow" style="margin-top: 18px">快捷键</p>
+        <ul class="toc__keys">
+          <li><kbd>空格</kbd> 播放 / 暂停</li>
+          <li><kbd>拖动</kbd> 进度条来回看</li>
+        </ul>
+      </aside>
+    </div>
+
+    <nav class="jump" data-jump aria-label="节导航">
+      <a class="jump__b" data-jump-prev href="#s1">
+        <span class="jump__a" aria-hidden="true">↑</span>
+        <span class="jump__n" data-jump-prev-n></span>
+        <span class="jump__t" data-jump-prev-t></span>
+      </a>
+      <a class="jump__b" data-jump-next href="#s2">
+        <span class="jump__a" aria-hidden="true">↓</span>
+        <span class="jump__n" data-jump-next-n></span>
+        <span class="jump__t" data-jump-next-t></span>
+      </a>
+    </nav>
+
+    <script src="assets/site.js" defer></script>
+    <script src="assets/figures.js" defer></script>
+  </body>
+</html>

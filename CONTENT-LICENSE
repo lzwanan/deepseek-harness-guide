@@ -1,0 +1,18 @@
+Creative Commons Attribution 4.0 International (CC BY 4.0)
+
+本站的文字内容采用 CC BY 4.0 许可，包括：章节正文、标题与图注、术语表条目、
+README.md、DESIGN.md、CONTRIBUTING.md 及其余 Markdown 文档。
+
+你可以：复制、转载、改编、翻译、用于商业用途。
+条件：保留作者署名与出处链接、附上本许可链接、说明是否做了修改。
+
+- 许可摘要：https://creativecommons.org/licenses/by/4.0/
+- 法律文本：https://creativecommons.org/licenses/by/4.0/legalcode
+
+不在本许可范围内的内容：
+
+- 站点代码（docs/assets/ 下的 CSS 与 JS、HTML 模板结构）适用根目录 LICENSE 的 MIT 许可。
+- 引用的上游源码片段、事件名与包路径示意，适用上游的 MIT 许可，见 NOTICE.md。
+- 站内 SVG 图示属于文字内容的一部分，随本文字许可一起授权。
+
+按 CC BY 4.0，作者不提供任何担保，也不因本许可放弃合理使用等法定权利。

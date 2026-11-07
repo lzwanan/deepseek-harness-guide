@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>一次请求里到底发生了什么 — DeepSeek Harness 导读</title>
+    <meta
+      name="description"
+      content="把一次模型调用拆成四段动作，看清 turn 与 step 的区别。"
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+    <script>
+      (function () {
+        try {
+          var m = localStorage.getItem("dsh-theme") || "auto";
+          var dark =
+            m === "dark" ||
+            (m === "auto" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          document.documentElement.dataset.mode = m;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body data-page="chapter-02.html" data-chapter="第 02 章 · turn 与 step">
+    <div
+      class="progress"
+      data-progress
+      role="progressbar"
+      aria-label="阅读进度"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    ></div>
+
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="brand" href="index.html">
+          <span class="brand__mark" aria-hidden="true"></span>
+          DeepSeek Harness 导读
+        </a>
+        <nav class="topnav" aria-label="站点导航">
+          <a href="index.html">目录</a>
+          <a class="is-optional" href="glossary.html">术语表</a>
+          <a class="is-optional" href="styleguide.html">规范</a>
+          <a class="is-optional" href="https://github.com/lzwanan/deepseek-harness-guide" target="_blank" rel="noreferrer noopener">本仓库</a>
+          <a class="is-optional" href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noreferrer noopener">上游源码</a>
+          <button class="theme-toggle" type="button" data-theme-toggle>自动</button>
+        </nav>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="side" aria-label="章节目录">
+        <div class="side__group">
+          <p class="eyebrow">七章 · 从现象到源码</p>
+          <ul class="sidetree sidetree--all">
+            <li>
+              <a href="chapter-01.html"><span class="n">01</span><span>它是什么</span></a>
+            </li>
+
+            <li class="is-open">
+              <a href="#s1"><span class="n">02</span><span>turn 与 step</span></a>
+              <ul class="sidetree__sub">
+                <li class="is-current">
+                  <a href="#s1"
+                    ><span class="n">2.1</span><span>一次请求做了什么</span></a
+                  >
+                </li>
+                <li>
+                  <a href="#s2"
+                    ><span class="n">2.2</span><span>一个回合可以有多次请求</span></a
+                  >
+                </li>
+                <li>
+                  <a href="#s3"
+                    ><span class="n">2.3</span><span>什么时候算结束</span></a
+                  >
+                </li>
+              </ul>
+            </li>
+
+            <li>
+              <a href="chapter-03.html"
+                ><span class="n">03</span><span>Session 日志</span></a
+              >
+            </li>
+            <li>
+              <a class="is-locked"
+                ><span class="n">04</span
+                ><span>插件模型<span class="soon">待补</span></span></a
+              >
+            </li>
+            <li>
+              <a class="is-locked"
+                ><span class="n">05</span
+                ><span>能力缝<span class="soon">待补</span></span></a
+              >
+            </li>
+            <li>
+              <a class="is-locked"
+                ><span class="n">06</span
+                ><span>组装<span class="soon">待补</span></span></a
+              >
+            </li>
+            <li>
+              <a class="is-locked"
+                ><span class="n">07</span
+                ><span>设计取舍<span class="soon">待补</span></span></a
+              >
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+      <article class="doc">
+        <p class="eyebrow">第 2 章 · <i>turn</i> 与 <i>step</i> — 2.1</p>
+        <h1 id="s1">一次请求里到底发生了什么</h1>
+        <p class="lede">
+          把一次模型调用拆开看，其实是四段固定的动作。它们串成一个循环，循环转几圈，取决于模型要不要动手。
+        </p>
+
+        <figure class="scope" id="fig-1" data-figure="step">
+          <div class="scope__bar">
+            <span class="scope__id">FIG.01</span>
+            <span class="scope__title">STEP · 一次请求的四段动作</span>
+            <span class="scope__bar__sp"></span>
+            <span class="scope__live" data-live><i></i><span>running</span></span>
+          </div>
+          <div class="scope__stage" data-stage></div>
+          <p class="readout" data-readout></p>
+          <div class="scope__ctrl">
+            <button
+              class="play"
+              type="button"
+              data-play
+              data-state="paused"
+              aria-pressed="false"
+              aria-label="播放动画"
+            >
+              <svg class="icon-play" viewBox="0 0 9 10" aria-hidden="true">
+                <path d="M0 0L9 5L0 10V0Z" fill="currentColor" />
+              </svg>
+              <svg class="icon-pause" viewBox="0 0 9 10" aria-hidden="true">
+                <rect x="0" y="0" width="3" height="10" fill="currentColor" />
+                <rect x="6" y="0" width="3" height="10" fill="currentColor" />
+              </svg>
+            </button>
+            <div class="scrub">
+              <div class="scrub__rail"><div class="scrub__fill" data-fill></div></div>
+              <div class="scrub__segs" data-segs></div>
+              <div class="scrub__knob" data-knob></div>
+              <input
+                type="range"
+                min="0"
+                max="1000"
+                value="0"
+                step="1"
+                data-scrub
+                aria-label="动画进度"
+              />
+            </div>
+            <div class="speed" role="group" aria-label="播放速度">
+              <button type="button" data-speed="0.5" aria-pressed="false">.5×</button>
+              <button type="button" data-speed="1" aria-pressed="true">1×</button>
+              <button type="button" data-speed="2" aria-pressed="false">2×</button>
+            </div>
+            <span class="time" data-time></span>
+          </div>
+        </figure>
+        <p class="figcap">
+          管线上的四个站点就是一次请求要经过的四段。点站点可以跳到那一刻；拖动进度条可以来回看；鼠标停在这张图上按空格能暂停。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>一次 step 固定四段：取输入 → 装配 prompt → 流式请求 → 执行 / 收尾。</li>
+            <li>四段走完不等于结束。要动手就回到 loop 再来一圈，不动手才写 <code>step/end</code>。</li>
+            <li>每个 step 都会重新装配一次 prompt，所以历史越长，这一步越贵。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>模型在一次回复里既说了一句话、又要调用工具，会因此多花一次请求吗？</summary>
+          <p>
+            不会。<b>一次请求可以同时产出文本和工具调用</b>。工具执行完，结果被塞回上下文，才进入下一个
+            step —— 也就是说，多花的那次请求来自「把工具结果再问一遍」，不是来自「同时说了话」。
+          </p>
+        </details>
+
+        <h2 id="s2">一个回合，可以有零到多次请求</h2>
+        <p>
+          很多资料把「一问一答」说成一个回合，这不准确。一个
+          <span
+            class="term"
+            tabindex="0"
+            data-tip-key="turn"
+            data-tip="一个回合。从你按下回车开始，到模型表示「没有更多要做的」为止。一个 turn 里可以包含 0 到多个 step。"
+            >turn</span
+          >
+          从你按下回车开始，到「没有更多要做的了」结束；中间每转一圈就是一个
+          <span
+            class="term"
+            tabindex="0"
+            data-tip-key="step"
+            data-tip="一步。一次完整的模型请求：装配 prompt → 请求 → 可能调用工具 → 收尾。连续调三次工具，就是三个 step、一个 turn。"
+            >step</span
+          >，每圈都是一次独立的模型请求。所以模型连着调三次工具，仍然只算一个回合里的三步。
+        </p>
+
+        <figure class="scope" id="fig-2" data-figure="turn">
+          <div class="scope__bar">
+            <span class="scope__id">FIG.02</span>
+            <span class="scope__title">TURN · 模型 / 工具 / 日志之间的消息往来</span>
+            <span class="scope__bar__sp"></span>
+            <span class="scope__live" data-live><i></i><span>running</span></span>
+          </div>
+          <div class="scope__stage" data-stage></div>
+          <p class="readout" data-readout></p>
+          <div class="scope__ctrl">
+            <button
+              class="play"
+              type="button"
+              data-play
+              data-state="paused"
+              aria-pressed="false"
+              aria-label="播放动画"
+            >
+              <svg class="icon-play" viewBox="0 0 9 10" aria-hidden="true">
+                <path d="M0 0L9 5L0 10V0Z" fill="currentColor" />
+              </svg>
+              <svg class="icon-pause" viewBox="0 0 9 10" aria-hidden="true">
+                <rect x="0" y="0" width="3" height="10" fill="currentColor" />
+                <rect x="6" y="0" width="3" height="10" fill="currentColor" />
+              </svg>
+            </button>
+            <div class="scrub">
+              <div class="scrub__rail"><div class="scrub__fill" data-fill></div></div>
+              <div class="scrub__segs" data-segs></div>
+              <div class="scrub__knob" data-knob></div>
+              <input
+                type="range"
+                min="0"
+                max="1000"
+                value="0"
+                step="1"
+                data-scrub
+                aria-label="动画进度"
+              />
+            </div>
+            <div class="speed" role="group" aria-label="播放速度">
+              <button type="button" data-speed="0.5" aria-pressed="false">.5×</button>
+              <button type="button" data-speed="1" aria-pressed="true">1×</button>
+              <button type="button" data-speed="2" aria-pressed="false">2×</button>
+            </div>
+            <span class="time" data-time></span>
+          </div>
+        </figure>
+        <p class="figcap">
+          时间从上往下走：每一条箭头是一次说话，箭头的方向就是「谁对谁」。五次往返被左侧括号分成三段——三个 step，一个 turn。第 3 步没有工具要跑，循环才找到出口。点左边的 STEP 1 / 2 / 3 可以直接跳过去，进度条上的两道细刻就是这三段的分界。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>一个 turn 从按下回车开始，到 <code>turn/end</code> 结束；中间可以有 0 到 N 个 step。</li>
+            <li>每次工具调用都要把结果送回模型、再请求一次，所以「做了三件事」是三次请求、一个回合。</li>
+            <li>所有往返都落在同一条日志里。turn 是日志上的一个片段，不是内存里的一个对象。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>模型连着调了三次工具，用户看到的是几轮问答？</summary>
+          <p>
+            一轮。<b>三次工具 = 三个 step = 一个 turn</b>。用户只发了一条消息，也只会收到一条最终回复；
+            中间那三次往返是他看不见的，但全部记在日志里。
+          </p>
+        </details>
+
+        <h2 id="s3">什么时候算结束</h2>
+        <p>
+          循环的出口只有一个：本次请求没有要求任何
+          <span
+            class="term"
+            tabindex="0"
+            data-tip-key="工具调用 / tool call"
+            data-tip="模型不直接操作电脑，它只输出一句「我要调用 read_file」。真正执行的是 harness 里的工具层，执行结果再回给模型。"
+            >工具</span
+          >，并且队列里没有新的用户输入。两个条件同时满足，才写
+          <code>turn/end</code>。少写一个，turn 就会提前关闭，后续消息会被当成新的回合。
+        </p>
+        <p class="eyebrow code__cap">packages/core/agent-loop</p>
+        <pre class="code"><code>turn/start
+  loop:  inbox/claimed → agent/pre-step → step/start → agent/request
+         ├ 要求工具 → <b>ctx.tools.execute()</b> → 回到 loop
+         └ 不要求   → <b>step/end</b>          → 结束本 turn
+turn/end</code></pre>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>出口只有一个：本次没有工具要跑，并且队列里没有新输入。</li>
+            <li>条件判断错了不会报错，只会表现成「消息串台」或「回合一直不结束」。</li>
+            <li>入口在 <code>packages/core/agent-loop</code>，搜 <code>turn/end</code> 就能顺着读完一次循环。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>「循环的出口只有一个」——具体是哪两个条件？</summary>
+          <p>
+            ① 本次请求<b>没有要求任何工具</b>；② 队列里<b>没有新的用户输入</b>。两个条件同时满足才写
+            <code>turn/end</code>。少一个，turn 就不会正常关闭。
+          </p>
+        </details>
+
+        <nav class="pager" aria-label="章节导航">
+          <a class="pager__item" href="index.html">
+            <span class="pager__k">← 目录</span>
+            <span class="pager__t">七章总览</span>
+          </a>
+          <a class="pager__item pager__next" href="chapter-03.html">
+            <span class="pager__k">下一章 →</span>
+            <span class="pager__t">03 · Session 日志</span>
+          </a>
+        </nav>
+      </article>
+
+      <aside class="toc" aria-label="本页目录">
+        <p class="eyebrow">本页</p>
+        <ul>
+          <li><a data-n="2.1" href="#s1" class="is-active">一次请求做了什么</a></li>
+          <li><a data-n="2.2" href="#s2">一个回合可以有多次请求</a></li>
+          <li><a data-n="2.3" href="#s3">什么时候算结束</a></li>
+        </ul>
+        <hr class="toc__rule" />
+        <p class="eyebrow">涉及模块</p>
+        <ul class="toc__modules">
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/core/agent-loop"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/core/agent-loop"
+              >core/agent-loop</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/core/tools"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/core/tools"
+              >core/tools</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/llm"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/llm"
+              >llm/llm</a
+            >
+          </li>
+        </ul>
+        <p class="eyebrow" style="margin-top: 18px">快捷键</p>
+        <ul class="toc__keys">
+          <li><kbd>空格</kbd> 播放 / 暂停</li>
+          <li><kbd>拖动</kbd> 进度条来回看</li>
+        </ul>
+      </aside>
+    </div>
+
+    <nav class="jump" data-jump aria-label="节导航">
+      <a class="jump__b" data-jump-prev href="#s1">
+        <span class="jump__a" aria-hidden="true">↑</span>
+        <span class="jump__n" data-jump-prev-n></span>
+        <span class="jump__t" data-jump-prev-t></span>
+      </a>
+      <a class="jump__b" data-jump-next href="#s2">
+        <span class="jump__a" aria-hidden="true">↓</span>
+        <span class="jump__n" data-jump-next-n></span>
+        <span class="jump__t" data-jump-next-t></span>
+      </a>
+    </nav>
+
+    <script src="assets/site.js" defer></script>
+    <script src="assets/figures.js" defer></script>
+  </body>
+</html>
