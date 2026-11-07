@@ -363,7 +363,10 @@
 
       /* 用滚动位置算，而不是用 IntersectionObserver 的「可见集合」。
          IO 在页面最底部会因为标题都已滚出上边界而找不到任何目标，
-         标记就停在上一个，读者会以为目录坏了。 */
+         标记就停在上一个，读者会以为目录坏了。
+         但滚动位置法在页面最底部也有自己的失败模式：最后一节的标题
+         永远顶不到判定线（页面已经没有更多可滚的了），点它就高亮不了 ——
+         所以滚到底时直接判给最后一节。 */
       var calcRaf = 0;
       function updateActive() {
         calcRaf = 0;
@@ -371,6 +374,10 @@
         var cur = targets.length ? targets[0].id : null;
         for (var i = 0; i < targets.length; i++) {
           if (targets[i].getBoundingClientRect().top <= line) cur = targets[i].id;
+        }
+        var doc = document.documentElement;
+        if (window.innerHeight + window.scrollY >= doc.scrollHeight - 2) {
+          cur = targets[targets.length - 1].id;
         }
         markCurrent(cur);
         setJump(cur);
