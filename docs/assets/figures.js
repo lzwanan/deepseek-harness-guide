@@ -1506,6 +1506,209 @@
   }
 
   /* ==========================================================================
+     图 7 —— 一个 profile 是一叠补丁
+     形态：左边四张纸片按序叠下，右边合并结果逐行长出。
+     讲的是「配置不是一份文件」：同一条条目，后层的 config 整条替换前层。
+     所以最后一层落下时，右边不增加行 —— 只把某个值换掉。
+     ========================================================================== */
+
+  var LY = {
+    sheetX: 16,
+    sheetY: 22,
+    sheetW: 190,
+    sheetH: 30,
+    sheetGap: 34,
+    rowX: 300,
+    rowW: 200,
+    rowY: 22,
+    rowH: 22,
+    rowGap: 24,
+    sheets: [
+      { n: "bundle/base", s: "共享核心" },
+      { n: "bundle/web-app", s: "模式层" },
+      { n: "profiles/web", s: "你的 profile patch" },
+      { n: "cordis.patch.yml", s: "home 级 · 最后应用" }
+    ],
+    /* 每行属于哪一层：值是它出现的层号 */
+    rows: [
+      { id: "llm", at: 0 },
+      { id: "tools", at: 0 },
+      { id: "agent-loop", at: 0 },
+      { id: "webserver", at: 1 },
+      { id: "settings", at: 2 },
+      { id: "sandbox-policy", at: 0, swap: true }
+    ],
+    /* 四层落下的时刻 */
+    at: [0.12, 0.34, 0.56, 0.74],
+    text: [
+      "<b>一个 profile 不是一份文件。</b>它是四份 patch 文档按固定顺序叠出来的结果 —— 顺序就是优先级。",
+      "<b>bundle/base 先落地。</b>模型、工具、循环这些共享核心都在这一层，每个随附 profile 都用它当底。",
+      "<b>再叠模式层。</b>web-app 只加「怎么用人」的部分：服务器、连接。换 profile 基本就是换这一层。",
+      "<b>然后是 profile 自己的 patch。</b>它随安装走、不在包里 —— 所以升级覆盖不到你的改动。",
+      "<b>最后是 home 级 patch，优先级最高。</b>看 sandbox-policy 那一行：行没多一条，配置被整条换掉了。"
+    ]
+  };
+
+  function buildLayer(root) {
+    var s = [];
+    var i, k;
+
+    s.push(
+      '<svg viewBox="0 0 560 190" role="img" aria-label="四层 patch 文档依次叠放：bundle/base、模式层、profile 自己的 patch、home 级 patch；右侧是合并结果，最后一层不增加行，只替换某一行的配置">'
+    );
+
+    /* 左：四张纸片 */
+    for (i = 0; i < LY.sheets.length; i++) {
+      var sx = LY.sheetX + i * 5;
+      var sy = LY.sheetY + i * LY.sheetGap;
+      s.push('<g data-sh' + i + ' opacity="0">');
+      s.push(
+        '<rect class="d-ly__sheet' +
+          (i === 3 ? " is-top" : "") +
+          '" x="' +
+          sx +
+          '" y="' +
+          sy +
+          '" width="' +
+          LY.sheetW +
+          '" height="' +
+          LY.sheetH +
+          '" rx="2"/>'
+      );
+      s.push(
+        '<text class="d-ly__n" x="' + (sx + 12) + '" y="' + (sy + 13) + '">' +
+          LY.sheets[i].n +
+          "</text>"
+      );
+      s.push(
+        '<text class="d-ly__s" x="' + (sx + 12) + '" y="' + (sy + 25) + '">' +
+          LY.sheets[i].s +
+          "</text>"
+      );
+      s.push(
+        '<text class="d-ly__s" x="' +
+          (sx + LY.sheetW - 10) +
+          '" y="' +
+          (sy + 13) +
+          '" text-anchor="end">' +
+          (i + 1) +
+          "</text>"
+      );
+      s.push("</g>");
+    }
+
+    /* 中间：合并箭头 */
+    s.push('<g data-arw opacity="0">');
+    s.push('<path class="d-ly__arw" d="M228 94 H280"/>');
+    s.push('<path class="d-ly__arw" d="M274 90 L281 94 L274 98"/>');
+    s.push('<text class="d-ly__cap" x="254" y="84" text-anchor="middle">按序合并</text>');
+    s.push("</g>");
+
+    /* 右：合并结果。行不按层分组，因为结果里根本不保留来源 —— 只有一条条条目。 */
+    for (k = 0; k < LY.rows.length; k++) {
+      var ry = LY.rowY + k * LY.rowGap;
+      s.push('<g data-row' + k + ' opacity="0">');
+      s.push(
+        '<rect class="d-ly__row" data-rb' +
+          k +
+          ' x="' +
+          LY.rowX +
+          '" y="' +
+          ry +
+          '" width="' +
+          LY.rowW +
+          '" height="' +
+          LY.rowH +
+          '" rx="2"/>'
+      );
+      s.push(
+        '<text class="d-ly__id" x="' + (LY.rowX + 10) + '" y="' + (ry + 14) + '">' +
+          LY.rows[k].id +
+          "</text>"
+      );
+      s.push("</g>");
+    }
+
+    /* 被替换的那个值：两个文本交叉淡切，位置不动 */
+    var swapY = LY.rowY + 5 * LY.rowGap + 14;
+    var vx = LY.rowX + LY.rowW - 8;
+    s.push(
+      '<text class="d-ly__v" data-v1 x="' + vx + '" y="' + swapY + '" text-anchor="end" opacity="0">workspace-write</text>'
+    );
+    s.push(
+      '<text class="d-ly__v is-new" data-v2 x="' + vx + '" y="' + swapY + '" text-anchor="end" opacity="0">danger-full-access</text>'
+    );
+
+    s.push("</svg>");
+
+    var host = document.createElement("div");
+    host.innerHTML = s.join("");
+    var svg = host.firstChild;
+    root.appendChild(svg);
+
+    var sheetEls = [];
+    var rowEls = [];
+    var rowBgs = [];
+    for (i = 0; i < LY.sheets.length; i++) sheetEls.push(svg.querySelector("[data-sh" + i + "]"));
+    for (k = 0; k < LY.rows.length; k++) {
+      rowEls.push(svg.querySelector("[data-row" + k + "]"));
+      rowBgs.push(svg.querySelector("[data-rb" + k + "]"));
+    }
+    var arw = svg.querySelector("[data-arw]");
+    var v1 = svg.querySelector("[data-v1]");
+    var v2 = svg.querySelector("[data-v2]");
+
+    function paint(t) {
+      var j, c, p;
+
+      /* 纸片：落下（位移 + 淡入）。错开 8px，让「叠」这个动作看得见。 */
+      for (j = 0; j < LY.sheets.length; j++) {
+        c = LY.at[j];
+        p = clamp((t - c) / 0.09, 0, 1);
+        sheetEls[j].setAttribute("opacity", p.toFixed(2));
+        sheetEls[j].setAttribute("transform", "translate(0," + (-8 * (1 - easeOut(p))).toFixed(1) + ")");
+      }
+
+      /* 行：属于哪一层，就在那层落地之后出现 */
+      for (k = 0; k < LY.rows.length; k++) {
+        var born = LY.at[LY.rows[k].at] + 0.05;
+        p = clamp((t - born) / 0.06, 0, 1);
+        rowEls[k].setAttribute("opacity", p.toFixed(2));
+        rowEls[k].setAttribute("transform", "translate(" + (6 * (1 - easeOut(p))).toFixed(1) + ",0)");
+      }
+
+      arw.setAttribute("opacity", clamp((t - 0.1) / 0.06, 0, 1).toFixed(2));
+
+      /* 最后一层不增行，只改值。这就是「替换」的全部可视化。 */
+      /* 值属于它那一行：行还没出现，值也不能先飘在那儿 */
+      var sw = clamp((t - 0.8) / 0.07, 0, 1);
+      var rowOn = clamp((t - LY.at[0] - 0.05) / 0.06, 0, 1);
+      v1.setAttribute("opacity", (rowOn * (1 - sw)).toFixed(2));
+      v2.setAttribute("opacity", (rowOn * sw).toFixed(2));
+      rowBgs[5].setAttribute("class", "d-ly__row" + (sw > 0.5 ? " is-swap" : ""));
+
+      if (t < LY.at[0]) return 0;
+      if (t < LY.at[1]) return 1;
+      if (t < LY.at[2]) return 2;
+      if (t < LY.at[3]) return 3;
+      return 4;
+    }
+
+    return {
+      paint: paint,
+      phases: 5,
+      text: function (i) {
+        return LY.text[clamp(i, 0, 4)];
+      },
+      jump: function (k) {
+        return clamp((clamp(k, 0, 4) + 0.5) / 5, 0, 1);
+      },
+      stepMarks: [LY.at[0], LY.at[1], LY.at[2], LY.at[3]],
+      marks: []
+    };
+  }
+
+  /* ==========================================================================
      播放器
      ========================================================================== */
 
@@ -1721,7 +1924,7 @@
 
   /* ---------- 启动 ---------- */
 
-  var DUR = { step: 11000, turn: 15000, boundary: 12000, log: 14000, seam: 12000, batch: 13000 };
+  var DUR = { step: 11000, turn: 15000, boundary: 12000, log: 14000, seam: 12000, batch: 13000, layer: 12000 };
 
   document.addEventListener("DOMContentLoaded", function () {
     Array.prototype.forEach.call(
@@ -1741,6 +1944,8 @@
             ? buildSeam
             : kind === "batch"
             ? buildBatch
+            : kind === "layer"
+            ? buildLayer
             : null;
         if (builder) Player(root, builder, { duration: DUR[kind] });
       }

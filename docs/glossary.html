@@ -290,14 +290,6 @@
             <span class="glo__src">04 · 插件模型</span>
           </li>
 
-          <li class="glo__item" id="bundle" data-glo-item="bundle 打包 组合 预设 集合">
-            <span class="glo__term">bundle</span>
-            <span class="glo__desc"
-              ><b>把一组插件打包成可复用的组合。</b>装上就得到一整套能力，不用一个个手动注册。换 bundle 相当于换一个产品形态。</span
-            >
-            <span class="glo__src">06 · 组装</span>
-          </li>
-
           <li class="glo__item" id="dispose" data-glo-item="dispose 卸载 回收 清理 生命周期">
             <span class="glo__term">dispose</span>
             <span class="glo__desc"
@@ -322,6 +314,50 @@
               所以装载顺序不敏感，依赖关系一目了然。</span
             >
             <span class="glo__src">04 · 插件模型</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="glo__group" data-glo-group>
+        <header class="glo__gh">
+          <span class="glo__gl">06 / 组装</span>
+          <span class="glo__gl" data-glo-count>4 条</span>
+        </header>
+        <ul class="glo__list">
+          <li class="glo__item" id="profile" data-glo-item="profile 配置档 预设 应用形态 启动">
+            <span class="glo__term">profile</span>
+            <span class="glo__desc"
+              ><b>同一套安装换出来的不同应用形态。</b><code>dsh --profile web</code> 与
+              <code>--profile sdk-minimal</code> 用同一个启动器，装出的东西完全不同。
+              它本身不是文件，是「组合包 + 自己的 patch」这一叠。</span
+            >
+            <span class="glo__src">06 · 组装</span>
+          </li>
+
+          <li class="glo__item" id="patch" data-glo-item="patch 补丁 覆盖 替换 insert 层 优先级">
+            <span class="glo__term">patch / 补丁</span>
+            <span class="glo__desc"
+              ><b>对配置树的增量，只有两种动作：插入新行、替换已有行的 config。</b>
+              替换是<b>整条</b>换掉，不深合并 —— 想保留的字段必须重述。层与层之间，后应用的赢。</span
+            >
+            <span class="glo__src">06 · 组装</span>
+          </li>
+
+          <li class="glo__item" id="bundle" data-glo-item="bundle 打包 组合 预设 集合">
+            <span class="glo__term">bundle</span>
+            <span class="glo__desc"
+              ><b>把一组插件打包成可复用的组合。</b>装上就得到一整套能力，不用一个个手动注册。换 bundle 相当于换一个产品形态。</span
+            >
+            <span class="glo__src">06 · 组装</span>
+          </li>
+
+          <li class="glo__item" id="skipped-bundles" data-glo-item="skippedBundles 跳过 组合包 版本 不兼容">
+            <span class="glo__term">skippedBundles</span>
+            <span class="glo__desc"
+              ><b>启动时被跳过的组合包清单。</b>解析失败、平台不符、版本不兼容都会落到这里。
+              应用可能照样起来 —— 只是安静地少了一块能力。</span
+            >
+            <span class="glo__src">06 · 组装</span>
           </li>
         </ul>
       </section>

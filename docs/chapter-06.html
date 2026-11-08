@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>一个 profile 是一叠补丁 — DeepSeek Harness 导读</title>
+    <meta
+      name="description"
+      content="配置不是一份文件：bundle 层、模式层、profile 自己的 patch、home 级 patch 按序叠放。以及一棵真正能跑的最小配置树长什么样。"
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+    <script>
+      (function () {
+        try {
+          var m = localStorage.getItem("dsh-theme") || "auto";
+          var dark =
+            m === "dark" ||
+            (m === "auto" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          document.documentElement.dataset.mode = m;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body data-page="chapter-06.html" data-chapter="第 06 章 · 组装">
+    <div
+      class="progress"
+      data-progress
+      role="progressbar"
+      aria-label="阅读进度"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    ></div>
+
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="brand" href="index.html">
+          <span class="brand__mark" aria-hidden="true"></span>
+          DeepSeek Harness 导读
+        </a>
+        <nav class="topnav" aria-label="站点导航">
+          <a href="index.html">目录</a>
+          <a class="is-optional" href="glossary.html">术语表</a>
+          <a class="is-optional" href="styleguide.html">规范</a>
+          <a
+            href="https://github.com/lzwanan/deepseek-harness-guide"
+            target="_blank"
+            rel="noreferrer noopener"
+            >本仓库</a
+          >
+          <a
+            class="is-optional"
+            href="https://github.com/deepseek-ai/deepseek-harness"
+            target="_blank"
+            rel="noreferrer noopener"
+            >上游源码</a
+          >
+          <button class="theme-toggle" type="button" data-theme-toggle>自动</button>
+        </nav>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="side" aria-label="章节目录">
+        <div class="side__group">
+          <p class="eyebrow">七章 · 从现象到源码</p>
+          <ul class="sidetree sidetree--all">
+            <li>
+              <a href="chapter-01.html"><span class="n">01</span><span>它是什么</span></a>
+            </li>
+            <li>
+              <a href="chapter-02.html"><span class="n">02</span><span>turn 与 step</span></a>
+            </li>
+            <li>
+              <a href="chapter-03.html"><span class="n">03</span><span>Session 日志</span></a>
+            </li>
+            <li>
+              <a href="chapter-04.html"><span class="n">04</span><span>插件模型</span></a>
+            </li>
+            <li>
+              <a href="chapter-05.html"><span class="n">05</span><span>工具系统</span></a>
+            </li>
+
+            <li class="is-open">
+              <a href="#s1"><span class="n">06</span><span>组装</span></a>
+              <ul class="sidetree__sub">
+                <li class="is-current">
+                  <a href="#s1"
+                    ><span class="n">6.1</span><span>一叠补丁，不是一份文件</span></a
+                  >
+                </li>
+                <li>
+                  <a href="#s2"
+                    ><span class="n">6.2</span><span>最小那棵树长什么样</span></a
+                  >
+                </li>
+                <li>
+                  <a href="#s3"
+                    ><span class="n">6.3</span><span>一行一行怎么读</span></a
+                  >
+                </li>
+                <li>
+                  <a href="#s4"
+                    ><span class="n">6.4</span><span>起不来的时候</span></a
+                  >
+                </li>
+              </ul>
+            </li>
+
+            <li>
+              <a class="is-locked"
+                ><span class="n">07</span
+                ><span>设计取舍<span class="soon">待补</span></span></a
+              >
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+      <article class="doc">
+        <p class="eyebrow">第 6 章 · <i>profile</i> — 6.1</p>
+        <h1 id="s1">一个 profile 是一叠补丁</h1>
+        <p class="lede">
+          前五章讲的都是「一个已经跑起来的 dsh」内部怎么运作。这一章回答之前那个问题：那棵配置树是谁搭起来的。
+        </p>
+
+        <p>
+          最容易搞错的假设是「有一个默认配置文件，你改它」。真实的模型是反的：
+          <b>没有任何一份文件是完整的</b>。一个 profile 由若干<b>组合包</b>（bundle）加它自己的
+          patch 叠出来，每个组合包只声明「我要插入这些行」。
+        </p>
+
+        <p>
+          组合包在 <code>package.json</code> 里用 <code>dsh.bundle.patch</code> 指向一个 patch 文件，或者一个有序的文件列表；
+          启动器按顺序把这些文档叠起来。随发行版交付的有六个：
+          <code>base</code>、<code>web-app</code>、<code>headless</code>、<code>acp-app</code>、<code>sdk-app</code>、<code>sdk-minimal</code>。
+          前四个 profile 都以 <code>base</code> 为底，只有 <code>sdk-minimal</code> 例外 —— 它自带一整棵树。
+        </p>
+
+        <figure class="scope" id="fig-1" data-figure="layer">
+          <div class="scope__bar">
+            <span class="scope__id">FIG.01</span>
+            <span class="scope__title">LAYER · 四层叠下来，最后一行被换掉</span>
+            <span class="scope__bar__sp"></span>
+            <span class="scope__live" data-live><i></i><span>running</span></span>
+          </div>
+          <div class="scope__stage" data-stage></div>
+          <p class="readout" data-readout></p>
+          <div class="scope__ctrl">
+            <button
+              class="play"
+              type="button"
+              data-play
+              data-state="paused"
+              aria-pressed="false"
+              aria-label="播放动画"
+            >
+              <svg class="icon-play" viewBox="0 0 9 10" aria-hidden="true">
+                <path d="M0 0L9 5L0 10V0Z" fill="currentColor" />
+              </svg>
+              <svg class="icon-pause" viewBox="0 0 9 10" aria-hidden="true">
+                <rect x="0" y="0" width="3" height="10" fill="currentColor" />
+                <rect x="6" y="0" width="3" height="10" fill="currentColor" />
+              </svg>
+            </button>
+            <div class="scrub">
+              <div class="scrub__rail"><div class="scrub__fill" data-fill></div></div>
+              <div class="scrub__segs" data-segs></div>
+              <div class="scrub__knob" data-knob></div>
+              <input
+                type="range"
+                min="0"
+                max="1000"
+                value="0"
+                step="1"
+                data-scrub
+                aria-label="动画进度"
+              />
+            </div>
+            <div class="speed" role="group" aria-label="播放速度">
+              <button type="button" data-speed="0.5" aria-pressed="false">.5×</button>
+              <button type="button" data-speed="1" aria-pressed="true">1×</button>
+              <button type="button" data-speed="2" aria-pressed="false">2×</button>
+            </div>
+            <span class="time" data-time></span>
+          </div>
+        </figure>
+        <p class="figcap">
+          右侧只看两件事：行是<b>累加</b>的，值却可能被<b>覆盖</b>。最后一层落下时没有新增任何一行 ——
+          它只把 <code>sandbox-policy</code> 的 <code>mode</code> 换成了别的。这就是「替换」的全部样子。
+        </p>
+
+        <p>
+          四层的顺序是固定的，而且顺序本身就是语义：<b>后应用的那层优先级更高</b>。
+        </p>
+
+        <ul>
+          <li><b>组合包层</b>——先是 <code>base</code>，再叠模式层（<code>web-app</code> 之类）。这一层随版本发布，你改不到它。</li>
+          <li><b>profile 自己的 <code>cordis.patch.yml</code></b>——在 <code>$DSH_HOME/profiles/&lt;name&gt;/</code> 下，随安装走。</li>
+          <li><b>home 级 <code>cordis.patch.yml</code></b>——放在 harness home 里，最后应用，压过前面所有层。</li>
+        </ul>
+
+        <p>
+          之所以值得这样拆，是因为这三层的<b>变化速率完全不同</b>：包随版本走，profile 随项目走，home 级随人走。
+          如果只有一份文件，升级就会覆盖掉后两者的改动 —— 这不是洁癖，是升级能不能做的问题。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>没有一份「完整配置」；profile 是多份 patch 文档叠出来的结果。</li>
+            <li>组合包用 <code>dsh.bundle.patch</code> 声明自己那一片，可以是一个文件或一个有序列表。</li>
+            <li>顺序即优先级：base → 模式层 → profile → home，最后一层压过前面全部。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>你想给所有项目统一加一个钩子，又不想每次升级都被覆盖，补丁该写在哪一层？</summary>
+          <p>
+            写进 home 级 <code>cordis.patch.yml</code>。它不属于任何包，升级时不会被覆盖；
+            又排在最后应用，能压过 profile 与组合包的设置。反过来，如果你想让某一条只在某个 profile 里生效，
+            就写在那一个 profile 自己的 patch 里 —— 换 profile 就不带过去。
+          </p>
+        </details>
+
+        <h2 id="s2">最小那棵树长什么样</h2>
+        <p>
+          概念讲完，看真东西。<code>sdk-minimal</code> 是唯一不叠 <code>base</code> 的 profile ——
+          它的 <code>cordis.patch.yml</code> 里那个 <code>insert:</code> 就是<b>整棵树</b>，179 行。
+          想理解「一个 harness 至少要什么」，读它最快。
+        </p>
+
+        <p class="eyebrow code__cap">packages/bundle/sdk-minimal/cordis.patch.yml · 有删节</p>
+        <pre class="code"><code># 这个 insert 就是完整配置树，不叠 dsh-base
+- insert:
+    - id: sdk-app-startup
+      name: '@deepseek-ai/dsh-sdk-app'
+      config: { profile: sdk-minimal }
+
+    - id: sdk-jsonrpc-server
+      name: '@deepseek-ai/dsh-sdk-jsonrpc-server'
+      inject: [sdkAppStartup, loader]
+
+    - id: llm-deepseek
+      name: '@deepseek-ai/dsh-llm-deepseek-api-key'
+      config:
+        apiKeyEnv: DEEPSEEK_API_KEY
+        defaultContextWindow: 1000000
+
+    - id: sandbox-policy
+      name: '@deepseek-ai/dsh-sandbox-policy'
+      config:
+        mode: danger-full-access
+        workspaceRoot: !!js process.cwd()
+
+    - id: terminal-bash
+      name: '@deepseek-ai/dsh-terminal-bash'
+      disabled: !!js process.platform === 'win32'
+      config: { timeoutMs: 300000 }</code></pre>
+
+        <p>
+          把 179 行按职责分四段，就会发现它其实很朴素：
+        </p>
+
+        <ul>
+          <li><b>外壳</b>——<code>sdk-app</code> 加 <code>sdk-jsonrpc-server</code>。它们决定「这是个 SDK，用 JSON-RPC 说话」，是这个 profile 存在的理由。</li>
+          <li><b>模型与日志</b>——<code>llm-deepseek</code> 从 <code>DEEPSEEK_API_KEY</code> 取凭据；<code>session</code> 加 <code>session-persistence-jsonl</code>，而且明确写着 <code>compression: none</code>（存未压缩 JSONL，方便人工查看）。</li>
+          <li><b>手和地</b>——<code>sandbox</code>、<code>filesystem</code>、<code>subprocess</code>、<code>pty</code>、<code>terminal-bash</code>。最后一行用 <code>disabled: !!js</code> 按平台二选一，Linux/macOS 走 bash，Windows 走 pwsh。</li>
+          <li><b>内核</b>——<code>timer</code>、<code>llm</code>、<code>session</code>、<code>system-prompt</code>、<code>tools</code>、<code>tool-executor-native</code>、<code>agent</code>、<code>agent-loop</code>。前五章讲的所有东西，就是这八行。</li>
+        </ul>
+
+        <p>
+          它对「最小」的理解不是「少写几行」，而是<b>每一行都自己拥有</b>：
+          注释里写得很直接 —— 不像 <code>dsh-base</code>，这个 profile 自己拥有每个服务行，并且<b>省略所有它用不到的可选生产者</b>。
+          所以里面没有 settings、没有遥测、没有 subagent、没有 workspace 指令。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li><code>sdk-minimal</code> 的 <code>insert:</code> 就是整棵树 —— 不叠 base，是理解「最小」的最好样本。</li>
+            <li>四段职责：外壳、模型与日志、手和地、内核；前五章的内容全在最后那八行里。</li>
+            <li>「最小」的意思是自己拥有每一行、而不是删掉几行 —— 省掉的是用不到的可选生产者。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>为什么这个 profile 要把 <code>compression</code> 显式设成 <code>none</code>？</summary>
+          <p>
+            因为它要给人看。压缩后的日志是给模型省上下文用的，不是给人排查用的；
+            一个「极简、显式」的 profile 宁可让文件大一点，也要让 <code>tail -f</code> 出来的每一行都能直接读懂。
+            这也侧面说明：<b>持久化策略是配置，不是硬编码</b>。
+          </p>
+        </details>
+
+        <h2 id="s3">一行一行怎么读</h2>
+        <p>
+          树里的每个节点都是一个对象，字段只有五个：
+          <code>id</code>、<code>name</code>、<code>inject</code>、<code>config</code>、<code>disabled</code>。
+          前两个是身份，中间那个是依赖，后两个是行为。
+        </p>
+
+        <p>
+          <code>id</code> 是这一行在<b>这张表里的名字</b>，patch 靠它定位；<code>name</code> 才是包。
+          两者分开的好处是同一个包可以装两次、配两套参数 —— 上面那段配置里
+          <code>terminal-bash</code> 就出现了两行，一个 bash 一个 pwsh，靠 <code>disabled</code> 二选一。
+        </p>
+
+        <p>
+          <code>inject</code> 就是第 04 章那个 <code>inject</code>，只是写在配置里：
+          <code>inject: [sdkAppStartup, loader]</code> 表示「这两个服务没就位之前别启动我」。
+          所以<b>行的先后顺序基本不需要你操心</b>，依赖关系写清楚就够了。
+        </p>
+
+        <p>
+          真正要小心的是 <code>config</code> 的替换语义。patch 对已有条目做的是<b>整条替换</b>，不是深合并 ——
+          官方文档把括号写在里面：<i>替换某个条目的整个配置（重述你要保留的字段）</i>。
+          于是有了一个很常见的坑：
+        </p>
+
+        <p class="eyebrow code__cap">同一个 config，两种写法，后果不同</p>
+        <pre class="code"><code># base 里是：{ applyPatch: false, maxBytes: 65536 }
+- id: tool-fs
+  config:
+    applyPatch: true          # ← 只写这一行
+
+# 结果不是「改一个字段」，而是整个 config 变成 { applyPatch: true }
+# maxBytes 悄悄回到了插件自己的默认值。要保留就得重述：
+- id: tool-fs
+  config:
+    applyPatch: true
+    maxBytes: 65536</code></pre>
+
+        <p>
+          还有一个只有踩过才知道的坑：<b>空的 patch 文件会让启动失败</b>。
+          不是「没有改动」的意思 —— 如果你真想禁用这一层，写 <code>[]</code>。
+          反方向的容错则宽松得多：patch 指定的条目不存在，只在 stderr 上警告一句，不拦启动。
+        </p>
+
+        <p>
+          想知道自己到底装出了什么，别靠读文件、也别靠猜，用
+          <code>--dump-config</code>：它把合并后的条目原样打印出来，并且<b>按注释分组标明每个源文件及其 patch 层</b>。
+          这才是唯一可信的「最终生效配置」——你看到的顺序，就是启动器应用的顺序。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>一行五个字段：<code>id</code>（表内身份）、<code>name</code>（包）、<code>inject</code>、<code>config</code>、<code>disabled</code>。</li>
+            <li>patch 对已有条目是<b>整条替换</b>，不是深合并 —— 不重述的字段会退回默认值。</li>
+            <li>空 patch 文件会导致启动失败（禁用该层要写 <code>[]</code>）；条目不存在只警告。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>两个组合包都想改 <code>system-prompt</code> 的配置，谁会赢？</summary>
+          <p>
+            后应用的那个。组合包层按声明顺序依次叠加，后一层对同一条目的 <code>config</code> 做整条替换。
+            这也是为什么「顺序即优先级」这句话要记牢 —— 但它只对<b>同一层里的兄弟</b>和<b>后叠的层</b>成立，
+            不适用于依赖关系：依赖由 <code>inject</code> 管，跟先后无关。
+          </p>
+        </details>
+
+        <h2 id="s4">起不来的时候</h2>
+        <p>
+          组装最容易出问题的地方不是写错配置，而是<b>装了一半</b>。这套启动器对「一半」的处理分得很细。
+        </p>
+
+        <p>
+          <b>先分两类失败。</b>插件装了但启动失败（抛异常），只产生一句带标签的警告，其余照常启动；
+          只有<b>必填条目</b>失败才会拆掉整个应用、以非零码退出。必填清单是写死的：
+          <code>agent-loop</code>、<code>tool-executor-native</code>、<code>tool-executor-ptc</code>，加上各应用自己的入口
+          （<code>webserver</code>、<code>headless-runner</code>、<code>acp</code>、<code>sdk-jsonrpc-server</code> 之类）。
+          换句话说：<b>能少一个工具，不能少循环。</b>
+        </p>
+
+        <p>
+          <b>再分两处出错。</b>组合包读不出来（解析失败、平台不符、版本不兼容），会被<b>跳过</b>并记进
+          <code>skippedBundles</code>，其余组合包保持原顺序继续；但 profile 自己的 patch 或 home 级 patch 出错，
+          启动直接失败。这个区别是有道理的：组合包是别人的东西，坏一个不该连累全部；
+          patch 是你的东西，坏了就说明你的意图没被表达出来，硬启反而更危险。
+        </p>
+
+        <p>
+          <b>还有一个版本门槛。</b>导入插件前，启动器会把它声明的 DSH 版本要求跟当前运行时比一次：
+          清单写了 <code>engines.dsh</code> 就只看这个范围，否则检查 <code>peerDependencies</code> 里所有
+          <code>@deepseek-ai/dsh*</code>。不匹配的组合包会被跳过并报告包名与版本。文档里有一句话值得记住 ——
+          <b>这些检查不是防范恶意包代码的沙箱</b>，它只保证版本对得上，不保证代码安全。
+        </p>
+
+        <p>
+          最后一点，也是最容易被忽略的：<code>skippedBundles</code> 只说明「这层没装上」，
+          <b>不保证剩下的组合仍然能提供所需服务</b>。跳过之后应用还可能因为缺服务而失败，
+          只是失败点挪到了后面 —— 所以看到 skip 时，别当成无害的提示。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>插件启动失败只警告；必填条目失败才拆整个应用 —— 能少一个工具，不能少循环。</li>
+            <li>组合包坏了会被跳过并记进 <code>skippedBundles</code>；你的 patch 坏了直接启动失败。</li>
+            <li>版本检查只保证版本对得上，不是安全沙箱；skip 也不保证剩下的还能跑。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>启动日志里出现一条 <code>skippedBundles</code>，应用却正常起来了。要不要管？</summary>
+          <p>
+            要管。应用能起来只说明必填条目还在；被跳过那一层本来要提供的东西，可能是一个工具、
+            一个服务、一段提示词。它不会报错，只会<b>安静地少一块能力</b>。
+            查法很直接：看被跳过包声明的 <code>dsh.bundle.patch</code> 里有没有你正在用的条目。
+          </p>
+        </details>
+
+        <nav class="pager" aria-label="章节导航">
+          <a class="pager__item" href="chapter-05.html">
+            <span class="pager__k">← 上一章</span>
+            <span class="pager__t">05 · 工具系统</span>
+          </a>
+          <span class="pager__item pager__next is-off">
+            <span class="pager__k">下一章 →</span>
+            <span class="pager__t">07 设计取舍 · 待补</span>
+          </span>
+        </nav>
+      </article>
+
+      <aside class="toc" aria-label="本页目录">
+        <p class="eyebrow">本页</p>
+        <ul>
+          <li><a data-n="6.1" href="#s1" class="is-active">一叠补丁，不是一份文件</a></li>
+          <li><a data-n="6.2" href="#s2">最小那棵树长什么样</a></li>
+          <li><a data-n="6.3" href="#s3">一行一行怎么读</a></li>
+          <li><a data-n="6.4" href="#s4">起不来的时候</a></li>
+        </ul>
+        <hr class="toc__rule" />
+        <p class="eyebrow">涉及模块</p>
+        <ul class="toc__modules">
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/bundle"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/bundle"
+              >bundle/</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/bundle/base"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/bundle/base"
+              >bundle/base</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/bundle/sdk-minimal"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/bundle/sdk-minimal"
+              >bundle/sdk-minimal</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/boot/app-boot"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/boot/app-boot"
+              >boot/app-boot</a
+            >
+          </li>
+        </ul>
+        <p class="eyebrow" style="margin-top: 18px">快捷键</p>
+        <ul class="toc__keys">
+          <li><kbd>空格</kbd> 播放 / 暂停</li>
+          <li><kbd>拖动</kbd> 进度条来回看</li>
+        </ul>
+      </aside>
+    </div>
+
+    <nav class="jump" data-jump aria-label="节导航">
+      <a class="jump__b" data-jump-prev href="#s1">
+        <span class="jump__a" aria-hidden="true">↑</span>
+        <span class="jump__n" data-jump-prev-n></span>
+        <span class="jump__t" data-jump-prev-t></span>
+      </a>
+      <a class="jump__b" data-jump-next href="#s2">
+        <span class="jump__a" aria-hidden="true">↓</span>
+        <span class="jump__n" data-jump-next-n></span>
+        <span class="jump__t" data-jump-next-t></span>
+      </a>
+    </nav>
+
+    <script src="assets/site.js" defer></script>
+    <script src="assets/figures.js" defer></script>
+  </body>
+</html>

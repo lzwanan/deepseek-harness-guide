@@ -3651,6 +3651,76 @@ a.row--live .row__n {
   fill: var(--signal);
 }
 
+/* ---------- 图 7：补丁层叠（第 06 章） ---------- */
+
+/* 左边四张纸片的错位只有 5px：叠放关系要看得出来，但不能变成扇面。
+   最后一张（home 级）用信号色描边 —— 它优先级最高，这件事必须一眼可见。 */
+
+.d-ly__sheet {
+  fill: var(--panel-fill);
+  stroke: var(--panel-edge);
+}
+
+.d-ly__sheet.is-top {
+  fill: var(--signal-soft);
+  stroke: var(--signal-line);
+}
+
+.d-ly__n {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  fill: var(--panel-ink-2);
+}
+
+.d-ly__s {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  fill: var(--panel-ink-4);
+}
+
+.d-ly__cap {
+  font-family: var(--sans);
+  font-size: 7.5px;
+  fill: var(--panel-ink-3);
+}
+
+.d-ly__arw {
+  fill: none;
+  stroke: var(--panel-axis);
+  stroke-width: 1;
+}
+
+/* 行的描边用 edge 而不是 line：单行孤立时，line 在浅底上会整条消失，
+   看起来像「没有这一行」。edge 才撑得住一行的边界。 */
+/* 行用 edge 而不是 line 描边：单行孤立时 line 在浅底上会整条消失，
+   看起来像「这一行不存在」。edge 才撑得住一行的边界。 */
+.d-ly__row {
+  fill: var(--panel-fill);
+  stroke: var(--panel-edge);
+}
+
+/* 被上层替换掉的那一行：整行变色，因为变的是它，不是整张图 */
+.d-ly__row.is-swap {
+  fill: var(--signal-wash);
+  stroke: var(--signal-line);
+}
+
+.d-ly__id {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  fill: var(--panel-ink-2);
+}
+
+.d-ly__v {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  fill: var(--panel-ink-3);
+}
+
+.d-ly__v.is-new {
+  fill: var(--signal);
+}
+
 /* ---------- 动效降级 ---------- */
 
 @media (prefers-reduced-motion: reduce) {
