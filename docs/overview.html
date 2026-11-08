@@ -6,7 +6,7 @@
     <title>全景 — DeepSeek Harness 导读</title>
     <meta
       name="description"
-      content="五层骨架、一次请求走过的八步、三种读法。读完这一页，你会知道 dsh 为什么长成现在这样。"
+      content="五层骨架、一次 turn 的四站循环、七个 ctx 键、串行与并行、三种读法。读完这一页，你能把 dsh 画出来。"
     />
     <link rel="stylesheet" href="assets/site.css" />
     <script>
@@ -83,7 +83,9 @@
               <span class="paths__d">零件怎么拼起来</span>
               <span class="paths__l">
                 <a href="#s2">骨架</a>
-                <a href="#s3">八步</a>
+                <a href="#s3">四站</a>
+                <a href="#s4">七键</a>
+                <a href="#s5">并行</a>
                 <a href="chapter-04.html">04 插件</a>
                 <a href="chapter-06.html">06 组装</a>
               </span>
@@ -161,7 +163,7 @@
           后面七章讲的每一件事，都是这句话的展开。
         </p>
 
-        <h2 id="s2">骨架：五层，一条总线</h2>
+        <h2 id="s2">骨架：五层，一个 ctx</h2>
         <p>
           从上往下看：最上面是你选的那种形态，最下面是它真正碰得到的世界。中间三层是 dsh 自己。
         </p>
@@ -175,89 +177,237 @@
           </div>
           <div class="scope__stage">
             <svg
-              viewBox="0 0 620 412"
+              viewBox="0 0 620 440"
               role="img"
-              aria-label="dsh 的五层骨架：形态层、组装层、内核层、能力层、世界层，共用一条 ctx 总线"
+              aria-label="dsh 的五层骨架。形态层：web、headless、sdk、acp、desktop；组装层：bundles 到 profile patch 到 home 到 --patch；内核层六个模块，每个在 ctx 上占一个键；能力层 fs、shell、subprocess、terminal、sandbox、lsp 等；越过信任边界才是世界层。"
             >
-              <!-- 层：形态 -->
-              <rect class="d-ov__band" x="32" y="42" width="556" height="46" rx="2" />
-              <text class="d-ov__k" x="46" y="62">FORM</text>
-              <text class="d-ov__s" x="46" y="76">形态</text>
-              <text class="d-ov__v" x="130" y="70">web · headless · sdk · acp · desktop</text>
+              <!-- 01 形态：由你在命令行选的那个 profile 决定，不由代码决定 -->
+              <rect class="d-ov__band" x="24" y="26" width="348" height="40" rx="2" />
+              <text class="d-ov__idx" x="34" y="43">01</text>
+              <text class="d-ov__k" x="50" y="43">FORM</text>
+              <text class="d-ov__s" x="34" y="57">形态</text>
+              <text class="d-ov__v" x="112" y="50">web · headless · sdk · acp · desktop</text>
 
-              <!-- 层：组装 -->
-              <rect class="d-ov__band" x="32" y="98" width="556" height="46" rx="2" />
-              <text class="d-ov__k" x="46" y="118">ASSEMBLY</text>
-              <text class="d-ov__s" x="46" y="132">组装</text>
-              <text class="d-ov__v" x="130" y="126">bundle → profile → home → --patch</text>
+              <!-- 02 组装：profile 决定叠哪些组合包，四层 patch 之后才是真实配置树 -->
+              <rect class="d-ov__band" x="24" y="74" width="348" height="40" rx="2" />
+              <text class="d-ov__idx" x="34" y="91">02</text>
+              <text class="d-ov__k" x="50" y="91">ASSEMBLY</text>
+              <text class="d-ov__s" x="34" y="105">组装</text>
+              <text class="d-ov__v" x="112" y="98">bundles → profile patch → home → --patch</text>
 
-              <!-- 层：内核 -->
-              <rect class="d-ov__band is-core" x="32" y="154" width="556" height="118" rx="2" />
-              <text class="d-ov__k" x="46" y="206">KERNEL</text>
-              <text class="d-ov__s" x="46" y="220">内核</text>
-              <text class="d-ov__s" x="46" y="234">五个模块</text>
+              <!-- 03 内核：没有中心调度器。六个模块各占一个键，谁也不持有谁 -->
+              <rect class="d-ov__band is-core" x="24" y="122" width="348" height="144" rx="2" />
+              <text class="d-ov__idx" x="34" y="139">03</text>
+              <text class="d-ov__k" x="50" y="139">KERNEL</text>
+              <text class="d-ov__s" x="34" y="153">内核</text>
+              <text class="d-ov__s" x="34" y="165">六个模块</text>
 
-              <rect class="d-ov__box" x="130" y="166" width="146" height="44" rx="2" />
-              <text class="d-ov__b" x="142" y="185">agent-loop</text>
-              <text class="d-ov__d" x="142" y="199">编排：领输入 · 发请求 · 分发</text>
+              <rect class="d-ov__box" x="112" y="130" width="120" height="38" rx="2" />
+              <text class="d-ov__b" x="120" y="144">agent-loop</text>
+              <text class="d-ov__key" x="120" y="154">ctx.agentLoop</text>
+              <text class="d-ov__d" x="120" y="163">驱动器：开 turn、跑 step</text>
 
-              <rect class="d-ov__box" x="284" y="166" width="146" height="44" rx="2" />
-              <text class="d-ov__b" x="296" y="185">tools</text>
-              <text class="d-ov__d" x="296" y="199">注册表 · 六步流水线</text>
+              <rect class="d-ov__box" x="244" y="130" width="120" height="38" rx="2" />
+              <text class="d-ov__b" x="252" y="144">agent</text>
+              <text class="d-ov__key" x="252" y="154">ctx.agents</text>
+              <text class="d-ov__d" x="252" y="163">句柄 · 注册表 · 事件</text>
 
-              <rect class="d-ov__box" x="438" y="166" width="146" height="44" rx="2" />
-              <text class="d-ov__b" x="450" y="185">session</text>
-              <text class="d-ov__d" x="450" y="199">只追加的事件日志</text>
+              <rect class="d-ov__box" x="112" y="174" width="120" height="38" rx="2" />
+              <text class="d-ov__b" x="120" y="188">session</text>
+              <text class="d-ov__key" x="120" y="198">ctx.sessions</text>
+              <text class="d-ov__d" x="120" y="207">只追加 · 派生历史</text>
 
-              <rect class="d-ov__box" x="130" y="216" width="146" height="44" rx="2" />
-              <text class="d-ov__b" x="142" y="235">system-prompt</text>
-              <text class="d-ov__d" x="142" y="249">每步重新装配</text>
+              <rect class="d-ov__box" x="244" y="174" width="120" height="38" rx="2" />
+              <text class="d-ov__b" x="252" y="188">system-prompt</text>
+              <text class="d-ov__key" x="252" y="198">ctx.systemPrompt</text>
+              <text class="d-ov__d" x="252" y="207">装配 · 工具 schema</text>
 
-              <rect class="d-ov__box" x="284" y="216" width="146" height="44" rx="2" />
-              <text class="d-ov__b" x="296" y="235">llm</text>
-              <text class="d-ov__d" x="296" y="249">适配器缝 · 流式</text>
+              <rect class="d-ov__box" x="112" y="218" width="120" height="38" rx="2" />
+              <text class="d-ov__b" x="120" y="232">tools</text>
+              <text class="d-ov__key" x="120" y="242">ctx.tools</text>
+              <text class="d-ov__d" x="120" y="251">注册表 · 三道闸门</text>
 
-              <!-- 第六格不是一个模块，是一个空位：内核里没有能力。
-                   把「不在这里」画出来，比让读者自己发现那片空白有用。 -->
-              <rect class="d-ov__box is-void" x="438" y="216" width="146" height="44" rx="2" />
-              <text class="d-ov__d" x="450" y="235">文件 · shell · 沙箱</text>
-              <text class="d-ov__d" x="450" y="249">不在这里，在下一层</text>
+              <rect class="d-ov__box" x="244" y="218" width="120" height="38" rx="2" />
+              <text class="d-ov__b" x="252" y="232">llm</text>
+              <text class="d-ov__key" x="252" y="242">ctx.llm</text>
+              <text class="d-ov__d" x="252" y="251">适配器缝 · 流式</text>
 
-              <!-- 层：能力 -->
-              <rect class="d-ov__band" x="32" y="282" width="556" height="46" rx="2" />
-              <text class="d-ov__k" x="46" y="302">CAPABILITY</text>
-              <text class="d-ov__s" x="46" y="316">能力</text>
-              <text class="d-ov__v" x="130" y="310">shell · fs · sandbox · web · lsp · subagent</text>
+              <!-- ctx 不是一层：它是横贯在层之间的那条注册面。
+                   画成虚线，因为它不属于任何一层，也不许被某一层独占。 -->
+              <line class="d-ov__rail" x1="24" y1="277" x2="372" y2="277" />
+              <rect class="d-ov__rc" x="144" y="269" width="108" height="15" rx="2" />
+              <text class="d-ov__rt" x="198" y="279.5" text-anchor="middle">ctx · 唯一共享面</text>
 
-              <!-- 层：世界 -->
-              <rect class="d-ov__band" x="32" y="338" width="556" height="46" rx="2" />
-              <text class="d-ov__k" x="46" y="358">WORLD</text>
-              <text class="d-ov__s" x="46" y="372">世界</text>
-              <text class="d-ov__v2" x="130" y="366">文件 · 进程 · 网络 · 编辑器</text>
+              <!-- 04 能力：内核一个都不实现，全在这一层 -->
+              <rect class="d-ov__band" x="24" y="288" width="348" height="60" rx="2" />
+              <text class="d-ov__idx" x="34" y="305">04</text>
+              <text class="d-ov__k" x="50" y="305">CAPABILITY</text>
+              <text class="d-ov__s" x="34" y="319">能力</text>
+              <text class="d-ov__v" x="112" y="314">fs · shell · subprocess · terminal</text>
+              <text class="d-ov__v" x="112" y="328">sandbox · lsp · subagent · team · mcp</text>
+
+              <!-- 信任边界：唯一会离开本进程的地方。标签压在线上，
+                   所以先用底色把线遮断 —— 不然线从字里穿过去，像被划掉 -->
+              <line class="d-ov__rail" x1="24" y1="361" x2="372" y2="361" />
+              <rect class="d-ov__mask" x="24" y="352" width="112" height="14" />
+              <text class="d-ov__rt" x="34" y="362">信任边界 · 进程 / 网络</text>
+
+              <!-- 05 世界：只有能力层的提供方碰得到 -->
+              <rect class="d-ov__band" x="24" y="369" width="348" height="40" rx="2" />
+              <text class="d-ov__idx" x="34" y="386">05</text>
+              <text class="d-ov__k" x="50" y="386">WORLD</text>
+              <text class="d-ov__s" x="34" y="400">世界</text>
+              <text class="d-ov__v" x="112" y="393">文件 · 进程 · 网络 · 编辑器</text>
+
+              <!-- 右列注解：分层图之所以像废话，是因为只有层名没有代价。
+                   每一行都在回答「换掉这一层会发生什么」。 -->
+              <line class="d-ov__lead" x1="374" y1="46" x2="384" y2="46" />
+              <text class="d-ov__ann" x="388" y="34">形态＝一棵插件树的名字。</text>
+              <text class="d-ov__ann" x="388" y="45">换形态不改内核，只换</text>
+              <text class="d-ov__ann" x="388" y="56">叠哪些组合包。</text>
+
+              <line class="d-ov__lead" x1="374" y1="94" x2="384" y2="94" />
+              <text class="d-ov__ann" x="388" y="82">四层 patch 叠成一棵树。</text>
+              <text class="d-ov__ann" x="388" y="93">--dump-config 打印的是</text>
+              <text class="d-ov__ann" x="388" y="104">叠完之后的真实结果。</text>
+
+              <line class="d-ov__lead" x1="374" y1="194" x2="384" y2="194" />
+              <text class="d-ov__ann" x="388" y="172">没有中心调度器：每个模块</text>
+              <text class="d-ov__ann" x="388" y="183">在 ctx 上占一个键，彼此</text>
+              <text class="d-ov__ann" x="388" y="194">不直接调用。六个键里没有</text>
+              <text class="d-ov__ann" x="388" y="205">一个碰得到文件、进程或网络。</text>
+
+              <line class="d-ov__lead" x1="374" y1="318" x2="384" y2="318" />
+              <text class="d-ov__ann" x="388" y="306">最厚的一层。fs 指向远程</text>
+              <text class="d-ov__ann" x="388" y="317">沙箱，bash、pty、lsp 一起</text>
+              <text class="d-ov__ann" x="388" y="328">搬过去 —— 共用同一个执行世界。</text>
+
+              <line class="d-ov__lead" x1="374" y1="389" x2="384" y2="389" />
+              <text class="d-ov__ann" x="388" y="383">唯一越界的地方。</text>
+              <text class="d-ov__ann" x="388" y="394">内核永远不在这里。</text>
             </svg>
           </div>
           <p class="readout ov-readout">
-            读法：<b>横着看是「谁拥有谁」</b>，竖着看是「一次调用往下走」。
-            内核那五个模块不实现任何能力，它们只向能力层要服务；能力层才去碰世界。
+            读法：<b>往下看是「一层替一层干活」</b>，往格子里看是「每个模块唯一的对外身份，是一个键」。
+            内核那六个模块没有一个实现文件、进程或网络 —— 它们只发请求；只有能力层才越过那道虚线去碰世界。
           </p>
         </figure>
         <p class="figcap">
-          虚线框是<b>可替换</b>的层，实线是<b>骨架</b>。内核右下那格虚线空位不是遗漏 ——
-          它标着「文件 · shell · 沙箱」都在下一层：内核一个都不实现，它们全是能被换掉的插件。
+          虚线是<b>能被整层替换</b>的东西，实线是骨架。中间那条 <code>ctx</code> 虚线不是第六层：
+          上面六个模块和下面一堆能力都插在它上面，谁也不知道对方的包名。
+          内核格子里每个名字下面那行 <code>ctx.*</code>，就是它唯一的对外身份。
         </p>
 
         <p>
           这张图和一般的分层图有一处不同：<b>没有中心调度器</b>。
-          内核的五个模块之间不互相调用，它们都挂在同一个 <code>ctx</code> 上，
+          内核六个模块之间不互相引用，它们都挂在同一个 <code>ctx</code> 上，
           靠<b>服务（按键取用）</b>和<b>事件（广播）</b>打交道。
-          所以你可以只替换其中一个，而不动其余四个 —— 这就是「一切皆插件」在架构上的实际含义。
+          所以你能只换掉其中一个，剩下五个不用动 —— 这就是「一切皆插件」在架构上的实际含义。
+          它也是最贵的地方：<b>任何一次改动，你都得先回答「这件事属于哪个键」</b>。
         </p>
 
-        <h2 id="s3">一次请求的八步</h2>
+        <h2 id="s3">一次 turn：四站绕一圈</h2>
         <p>
-          骨架是静态的，流程是动态的。下面这条线是你按下回车之后真正发生的事，
-          每一步都标了由谁负责、在哪一章展开。
+          骨架是静态的，流程是动态的。按下回车之后，程序在四个站之间绕圈 ——
+          绕一圈叫一个 <b>step</b>，一圈只换来一次模型回复，以及它这次调用出去的那批工具。
         </p>
+
+        <figure class="scope ov-fig">
+          <div class="scope__bar">
+            <span class="scope__id">FIG.01</span>
+            <span class="scope__title">TURN LOOP · 四站一圈</span>
+            <span class="scope__bar__sp"></span>
+            <span class="scope__live"><i></i><span>static</span></span>
+          </div>
+          <div class="scope__stage">
+            <svg
+              viewBox="0 0 620 430"
+              role="img"
+              aria-label="一次 turn 的四站循环：装配请求、流式请求、分发工具、落盘，然后回到装配；不再欠请求时写 step/end 并关闭 turn"
+            >
+              <defs>
+                <marker
+                  id="lpTip"
+                  viewBox="0 0 6 6"
+                  refX="5"
+                  refY="3"
+                  markerWidth="5"
+                  markerHeight="5"
+                  orient="auto"
+                >
+                  <path class="d-loop__tip" d="M0 0 L6 3 L0 6 Z" />
+                </marker>
+              </defs>
+
+              <!-- turn 的两个端点不是站：一个是领输入，一个是收尾 -->
+              <rect class="d-loop__node is-open" x="110" y="12" width="130" height="22" rx="2" />
+              <text class="d-loop__tag" x="175" y="27" text-anchor="middle">turn/start</text>
+              <text class="d-loop__d" x="250" y="27">从 inbox 领一条输入</text>
+              <path class="d-loop__edge" d="M175 34 L175 54" marker-end="url(#lpTip)" />
+
+              <!-- 站① 装配 -->
+              <rect class="d-loop__node" x="80" y="56" width="190" height="64" rx="2" />
+              <text class="d-loop__tag" x="262" y="70" text-anchor="end">STEP 03</text>
+              <text class="d-loop__t" x="92" y="78">装配</text>
+              <text class="d-loop__key" x="92" y="91">ctx.systemPrompt</text>
+              <text class="d-loop__d" x="92" y="104">提示词 · 历史 · 工具 schema</text>
+
+              <!-- 站② 请求 -->
+              <rect class="d-loop__node" x="350" y="56" width="190" height="64" rx="2" />
+              <text class="d-loop__tag" x="532" y="70" text-anchor="end">STEP 04</text>
+              <text class="d-loop__t" x="362" y="78">请求</text>
+              <text class="d-loop__key" x="362" y="91">ctx.llm</text>
+              <text class="d-loop__d" x="362" y="104">流式回来，只产文本</text>
+
+              <!-- 站③ 分发 -->
+              <rect class="d-loop__node" x="350" y="276" width="190" height="64" rx="2" />
+              <text class="d-loop__tag" x="532" y="290" text-anchor="end">STEP 05–06</text>
+              <text class="d-loop__t" x="362" y="298">分发</text>
+              <text class="d-loop__key" x="362" y="311">ctx.tools</text>
+              <text class="d-loop__d" x="362" y="324">并行有上限，错误即结果</text>
+
+              <!-- 站④ 落盘 -->
+              <rect class="d-loop__node" x="80" y="276" width="190" height="64" rx="2" />
+              <text class="d-loop__tag" x="262" y="290" text-anchor="end">STEP 07</text>
+              <text class="d-loop__t" x="92" y="298">落盘</text>
+              <text class="d-loop__key" x="92" y="311">ctx.sessions</text>
+              <text class="d-loop__d" x="92" y="324">只追加，下一步从它派生</text>
+
+              <!-- 四条边：刻意只标数据，不标包名 —— 包会换，数据不会 -->
+              <path class="d-loop__edge" d="M270 88 L346 88" marker-end="url(#lpTip)" />
+              <text class="d-loop__el" x="308" y="81" text-anchor="middle">请求</text>
+
+              <path class="d-loop__edge" d="M445 120 L445 272" marker-end="url(#lpTip)" />
+              <text class="d-loop__el" x="452" y="198">tool/call</text>
+
+              <path class="d-loop__edge" d="M350 308 L274 308" marker-end="url(#lpTip)" />
+              <text class="d-loop__el" x="312" y="301" text-anchor="middle">tool/result</text>
+
+              <path class="d-loop__edge" d="M175 276 L175 124" marker-end="url(#lpTip)" />
+              <text class="d-loop__el" x="168" y="198" text-anchor="end">还欠一次请求</text>
+
+              <!-- 圈心那句话是整页的主旨：贵不是模型慢，是重拼 -->
+              <text class="d-loop__mid" x="310" y="182" text-anchor="middle">一个 step = 绕一圈</text>
+              <text class="d-loop__mid2" x="310" y="202" text-anchor="middle">每绕一圈，上下文都从头拼一遍；</text>
+              <text class="d-loop__mid2" x="310" y="216" text-anchor="middle">所以同一个 turn 里，最后一次请求最贵</text>
+
+              <path class="d-loop__edge" d="M175 340 L175 364" marker-end="url(#lpTip)" />
+              <rect class="d-loop__node is-open" x="110" y="366" width="130" height="22" rx="2" />
+              <text class="d-loop__tag" x="175" y="381" text-anchor="middle">turn/end</text>
+              <text class="d-loop__d" x="250" y="381">不再欠请求，写 step/end</text>
+            </svg>
+          </div>
+          <p class="readout ov-readout">
+            一圈四站，只有第二站在等网络。<b>第 03 到 07 步都在圈内</b> —— 装配、请求、分发、落盘，
+            然后再装配。这也解释了一个新手最容易误判的地方：你在界面上看到的一段「思考」，在日志里是十几条记录。
+          </p>
+        </figure>
+        <p class="figcap">
+          圈外的两个虚线框不是站，是边界：一个是领输入，一个是收尾。四条边上只标了数据，没标包名 ——
+          包可以换，走过去的东西不会变。所以查一次失败别盯界面：去日志里找那条边对应的事件。
+        </p>
+
+        <p>把每一站摊开，就是下面这八步。每一步都标了由谁负责、在哪一章展开。</p>
 
         <ol class="tr">
           <li class="tr__row">
@@ -359,7 +509,108 @@
           想调试，就去读日志，不要盯着界面猜。
         </p>
 
-        <h2 id="s4">三种读法</h2>
+        <h2 id="s4">缝在哪：七个键</h2>
+        <p>
+          「一切皆插件」说起来轻，落到代码上只有一件事：<b>跨模块的引用全部经过 <code>ctx</code> 上的一个键</b>。
+          插件不 import 另一个插件，它只声明自己要哪个键；实现方也只声明自己提供哪个键。
+          两边谁都不知道对方的包名。
+        </p>
+
+        <div class="sg-wrap ov-table">
+          <table class="sg-table">
+            <colgroup>
+              <col style="width: 168px" />
+              <col style="width: 178px" />
+              <col />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>键</th>
+                <th>谁在提供</th>
+                <th>换掉它，什么跟着变</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>ctx.sessions</code></td>
+                <td>会话持久化（默认 JSONL 文件）</td>
+                <td>换存储后端。日志格式、回放、fork、迁移全部照旧 —— 变的只是字节写在哪</td>
+              </tr>
+              <tr>
+                <td><code>ctx.tools</code></td>
+                <td>任意插件注册的工具</td>
+                <td>加能力不用动循环。<code>restrict()</code> 还能按 agent 裁掉可见集，等于直接砍掉那部分 token</td>
+              </tr>
+              <tr>
+                <td><code>ctx.systemPrompt</code></td>
+                <td>提示词段的注册者</td>
+                <td>换装配策略。模型和循环都不知道提示词是怎么拼出来的</td>
+              </tr>
+              <tr>
+                <td><code>ctx.llm</code></td>
+                <td>模型适配器</td>
+                <td>换厂商不改循环。<code>prepareCall()</code> 把「这一次调用」绑死在一个适配器上</td>
+              </tr>
+              <tr>
+                <td><code>ctx.agents</code></td>
+                <td>AgentFactory（默认由 agent-loop 注册）</td>
+                <td>换驱动器。消费方仍然只认 <code>ctx.agents</code>，不知道背后是谁在跑</td>
+              </tr>
+              <tr>
+                <td>
+                  <code>ctx.fs</code><br />
+                  <code>ctx.shell</code><br />
+                  <code>ctx.sandbox</code>
+                </td>
+                <td>能力提供方</td>
+                <td>把 fs 指向远程沙箱，bash、pty、lsp 会跟着一起搬过去 —— 它们共享同一个执行世界</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          这张表就是「换一个提供方，整个产品跟着变」的全部机制：<b>没有第二套注册表，也没有特权通道</b>。
+          反过来也成立 —— 一个包如果只能靠 import 另一个包才能工作，它就不是插件，而是那个包的一部分。
+        </p>
+
+        <h2 id="s5">哪里串行，哪里并行，崩了算谁的</h2>
+        <p>
+          分层图不回答这三个问题，但它们才是真接手一个系统时最先要问的。
+        </p>
+
+        <p>
+          <b>串行：一个 agent 里的请求是一条一条发的。</b>输入走同一个 inbox、逐条领取；turn 与 turn 串行，
+          step 与 step 也串行。想并行，就开另一个 agent —— 而不是把两个请求塞进同一个循环。
+        </p>
+
+        <p>
+          <b>并行：只在一步之内，而且由工具自己声明。</b>一个 step 里模型可能一次吐出好几个调用，
+          执行器按 <code>isConcurrencySafe(args)</code> 分组：并行组是有界滚动池（默认 10），
+          独占调用是一道前后都等的屏障。回填顺序永远是模型给出的顺序 ——
+          所以把上限调成 1 只影响快慢，不影响任何可观察的结果。
+        </p>
+
+        <p>
+          <b>失败域：越靠近模型，越不该炸。</b>工具失败被收敛成一条「错误也是结果」回到模型；
+          模型请求失败走 <code>agent/request-error</code>，重试不重新装配，也不会重复一遍 pre-step；
+          只有插件初始化失败（必填条目起不来）才会让整个应用退出。这也是为什么日志必须冻结、API 不必 ——
+          唯一会离开这个进程的东西，才值得花稳定性预算。
+        </p>
+
+        <p>
+          <b>边界：一个进程一棵 ctx 树。</b>子 agent 有自己的 <code>agent.ctx</code>，注册在里面的东西随它销毁；
+          唯一越出进程的是能力层 spawn 的进程和打开的 socket，它们全落在图里那道虚线上。
+        </p>
+
+        <p>
+          最后一条容易被忽略：<b>事件分三个域</b>。会话事件会落盘，重载之后还在；<code>agent/*</code>
+          事件活在内存里，用来拦进行中的工作；能力事件（<code>fs/*</code>、<code>tools/*</code>、
+          <code>telemetry/*</code>）让你不 import 循环也能挂策略。用错域的典型症状是：
+          「这个决定为什么没在日志里留下痕迹」—— 因为它本来就不该留。
+        </p>
+
+        <h2 id="s6">三种读法</h2>
         <p>
           同一套材料，三种人能拿到三种东西。左栏给了三组入口，这里说清每组的目标。
         </p>
@@ -392,7 +643,7 @@
           </div>
         </div>
 
-        <h2 id="s5">读完能回答这八个问题吗</h2>
+        <h2 id="s7">读完能回答这八个问题吗</h2>
         <p>这八问就是本导读的验收标准。答不上来的那一条，就是你还没读的那一章。</p>
 
         <details class="check">
@@ -473,9 +724,11 @@
         <ul>
           <li><a data-n="1" href="#s1" class="is-active">它是什么</a></li>
           <li><a data-n="2" href="#s2">骨架：五层</a></li>
-          <li><a data-n="3" href="#s3">八步流程</a></li>
-          <li><a data-n="4" href="#s4">三种读法</a></li>
-          <li><a data-n="5" href="#s5">八问自检</a></li>
+          <li><a data-n="3" href="#s3">四站一圈</a></li>
+          <li><a data-n="4" href="#s4">七个键</a></li>
+          <li><a data-n="5" href="#s5">串行与并行</a></li>
+          <li><a data-n="6" href="#s6">三种读法</a></li>
+          <li><a data-n="7" href="#s7">八问自检</a></li>
         </ul>
         <hr class="toc__rule" />
         <p class="eyebrow">跳去</p>

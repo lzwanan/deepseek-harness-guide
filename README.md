@@ -24,7 +24,7 @@
 
 | 页 | 回答什么 | 什么时候看 |
 | --- | --- | --- |
-| [`overview.html`](https://lzwanan.github.io/deepseek-harness-guide/overview.html) | 它为什么长这样、骨架分几层、一次请求怎么走完 | 读任何一章之前，先建立系统观 |
+| [`overview.html`](https://lzwanan.github.io/deepseek-harness-guide/overview.html) | 它为什么长这样、骨架分几层、一次 turn 怎么绕圈、七个键在哪 | 读任何一章之前，先建立系统观 |
 | [`start.html`](https://lzwanan.github.io/deepseek-harness-guide/start.html) | 怎么跑起来、怎么加第一个插件与工具 | 想动手，或者读完之后不知道从哪改 |
 
 **全景讲为什么，章讲是什么，上手讲怎么动。** 三页之间只单向指路。
@@ -55,6 +55,7 @@ python3 -m http.server 8000 -d docs
 - 亮 / 暗两套主题，长文优先，单一强调色，规范见 [`DESIGN.md`](DESIGN.md)。
 - 八张动效图，一张只讲一件事：顺序、往返、边界、日志与历史、能力缝接线、批次调度、补丁层叠、
   冻结面与滑动面。rAF 连续时间轴，支持播放、单步、拖拽、变速；`prefers-reduced-motion` 停在末帧。
+- 另有两张静态架构图（全景页）：五层骨架带注解、一次 turn 的四站环。没有时间轴，只有结构与代价。
 - 术语浮层、双目录同步、阅读进度、键盘可达。
 - `docs/styleguide.html` 是 `DESIGN.md` 的视觉版，色卡从 `getComputedStyle` 读，不手抄，规范和实现不会漂移。
 

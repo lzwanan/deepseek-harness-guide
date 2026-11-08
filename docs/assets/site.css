@@ -3950,17 +3950,44 @@ a.row--live .row__n {
   stroke: var(--panel-edge);
 }
 
-/* 内核里那格空位：用虚线 + 无填充，表示「这里没有东西」，而不是「还有一个模块」 */
-.d-ov__box.is-void {
-  fill: none;
-  stroke: var(--panel-ink-4);
-  stroke-dasharray: 3 2;
+/* 层号：给正文里「第二层」「第四层」一个可以引用的坐标 */
+.d-ov__idx {
+  font-family: var(--mono);
+  font-size: 6.8px;
+  letter-spacing: 0.08em;
+  fill: var(--panel-ink-4);
 }
 
-.d-ov__v2 {
-  font-family: var(--sans);
-  font-size: 8px;
+/* 层与右侧注解之间的引线。不是装饰：它回答「这行字在说哪一层」 */
+.d-ov__lead {
+  stroke: var(--panel-edge);
+  stroke-width: 1;
+}
+
+/* ctx 不是一层 —— 所以画成虚线，横穿在层与层之间，不属于任何一层 */
+.d-ov__rail {
+  stroke: var(--panel-ink-4);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+
+.d-ov__rc {
+  fill: var(--panel);
+  stroke: var(--panel-edge);
+}
+
+.d-ov__rt {
+  font-family: var(--mono);
+  font-size: 7.2px;
   fill: var(--panel-ink-3);
+}
+
+/* 键名用信号色：它是这一格里唯一能被外部引用的东西，
+   比职责描述重要一级 */
+.d-ov__key {
+  font-family: var(--mono);
+  font-size: 7px;
+  fill: var(--signal);
 }
 
 .d-ov__k {
@@ -3978,40 +4005,104 @@ a.row--live .row__n {
 
 .d-ov__v {
   font-family: var(--mono);
-  font-size: 8.5px;
+  font-size: 8.6px;
   fill: var(--panel-ink-2);
-}
-
-.d-ov__n {
-  font-family: var(--sans);
-  font-size: 7.5px;
-  fill: var(--panel-ink-4);
 }
 
 .d-ov__b {
   font-family: var(--mono);
-  font-size: 8.5px;
+  font-size: 9px;
   fill: var(--panel-ink);
 }
 
 .d-ov__d {
   font-family: var(--sans);
-  font-size: 7.5px;
+  font-size: 7.2px;
   fill: var(--panel-ink-3);
 }
 
-.d-ov__bus {
+/* 右列注解：这张图有一半信息在这里，所以给它比格内小字大半档 */
+.d-ov__ann {
+  font-family: var(--sans);
+  font-size: 8px;
+  fill: var(--panel-ink-3);
+}
+
+/* 边界标签压在虚线上时，用它把线遮断 —— 线从文字中间穿过去
+   看起来像划掉，不像标注 */
+.d-ov__mask {
+  fill: var(--panel);
+}
+
+/* ---------- 图 02：一次 turn 的四站环 ---------- */
+
+.d-loop__node {
+  fill: var(--panel-card);
+  stroke: var(--panel-edge);
+}
+
+/* 圈外的两个端点（turn/start、turn/end）不是站，是边界，所以用虚线 */
+.d-loop__node.is-open {
+  fill: none;
+  stroke: var(--panel-ink-4);
+  stroke-dasharray: 3 2;
+}
+
+.d-loop__edge {
   fill: none;
   stroke: var(--panel-axis);
   stroke-width: 1;
-  stroke-dasharray: 2 3;
 }
 
-.d-ov__busl {
+.d-loop__tip {
+  fill: var(--panel-axis);
+}
+
+.d-loop__t {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  fill: var(--panel-ink);
+}
+
+.d-loop__key {
   font-family: var(--mono);
-  font-size: 7px;
-  letter-spacing: 0.06em;
-  fill: var(--panel-ink-4);
+  font-size: 7.2px;
+  fill: var(--signal);
+}
+
+.d-loop__d {
+  font-family: var(--sans);
+  font-size: 7.2px;
+  fill: var(--panel-ink-3);
+}
+
+.d-loop__tag {
+  font-family: var(--mono);
+  font-size: 6.4px;
+  letter-spacing: 0.1em;
+  fill: var(--panel-ink-3);
+}
+
+.d-loop__el {
+  font-family: var(--mono);
+  font-size: 6.8px;
+  /* 边上标的是「走过去的是什么」。暗色下 ink-4 只剩 2.5:1，
+     读不清就等于没标 */
+  fill: var(--panel-ink-3);
+}
+
+.d-loop__mid {
+  font-family: var(--sans);
+  font-size: 10.5px;
+  fill: var(--panel-ink-2);
+}
+
+.d-loop__mid2 {
+  font-family: var(--sans);
+  font-size: 7.6px;
+  fill: var(--panel-ink-3);
 }
 
 /* 骨架图没有播放器，所以观测窗不需要控件行；
@@ -4204,6 +4295,15 @@ a.row--live .row__n {
      再窄就真的读不了，那时候横滑是对的。 */
   .ov-table .sg-table {
     min-width: 520px;
+  }
+  /* 这两张图跟动效图不一样：它们在 620 的宽度里排的是 8px 的字，
+     跟着容器一起缩到 360 就只剩 5px，全是噪点。宁可横滑，不许缩字。 */
+  .ov-fig .scope__stage {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .ov-fig .scope__stage svg {
+    min-width: 560px;
   }
 }
 
