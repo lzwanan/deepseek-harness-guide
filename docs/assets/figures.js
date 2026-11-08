@@ -1232,6 +1232,280 @@
   }
 
   /* ==========================================================================
+     图 6 —— 一个批次怎么排
+     形态：甘特图。五条调用各占一条泳道，横向是时间，纵向是身份。
+     讲的是「派发可以重叠，顺序不能乱」：上半部分允许重叠，
+     下半部分的回填槽仍然按 ①②③④⑤ 走 —— 两条轴各管一件事。
+     ========================================================================== */
+
+  var BT = {
+    x0: 124, // 时间轨道左端
+    x1: 548, // 右端
+    laneTop: 34, // 第一条泳道的顶
+    laneH: 28,
+    barH: 14,
+    resY: 190,
+    /* s/e 是轨道上的起止（0..1），a0/a1 是动画时间轴上的出现窗口。
+       两者刻意不同：起止决定图长什么样，出现窗口决定它什么时候被看见。 */
+    calls: [
+      { n: "①", name: "read_file", s: 0.02, e: 0.3, ex: false, a0: 0.1, a1: 0.24 },
+      { n: "②", name: "grep", s: 0.06, e: 0.22, ex: false, a0: 0.13, a1: 0.21 },
+      { n: "③", name: "read_file", s: 0.22, e: 0.4, ex: false, a0: 0.21, a1: 0.31 },
+      { n: "④", name: "apply_patch", s: 0.44, e: 0.68, ex: true, a0: 0.37, a1: 0.5 },
+      { n: "⑤", name: "bash", s: 0.72, e: 0.9, ex: false, a0: 0.55, a1: 0.64 }
+    ],
+    /* 回填时刻：按模型顺序，一个接一个 */
+    resAt: [0.74, 0.79, 0.84, 0.89, 0.94],
+    text: [
+      "<b>模型一次吐出五个调用。</b>它们作为一批交给执行器 —— 顺序是模型写的顺序，不是能并发的顺序。",
+      "<b>①②③ 同一组，池子只有两个位子。</b>② 结束，③ 才被放进池子。这是有界滚动池，不是「全都同时跑」。",
+      "<b>④ 是独占调用，它前后都是屏障。</b>前面三个全部结算它才开始；它没结束，后面的谁也不能开始。",
+      "<b>⑤ 在屏障之后重新计位。</b>派发在时钟上重叠，可策略、结果、结果上下文永远按模型的顺序走。",
+      "<b>回填仍是 ①②③④⑤。</b>② 最早完成，却排在第二位 —— 模型看到的是顺序，看不见并发。"
+    ]
+  };
+
+  function buildBatch(root) {
+    var s = [];
+    var span = BT.x1 - BT.x0;
+    var i, k;
+
+    function X(u) {
+      return BT.x0 + u * span;
+    }
+
+    s.push(
+      '<svg viewBox="0 0 560 216" role="img" aria-label="一个批次里的五个工具调用：三个并行共享两个位子，一个独占形成屏障，结果仍按模型发出的顺序回填">'
+    );
+
+    /* 顶部两组的关系标注。数字是算出来的，不是摆上去的 ——
+       括号的起止与下面那些条的起止用同一组 s / e，改条就改括号。 */
+    var gA = { x1: X(0.02), x2: X(0.4) };
+    var gB = { x1: X(0.44), x2: X(0.68) };
+
+    s.push('<g data-grp-a opacity="0">');
+    s.push(
+      '<path class="d-bt__brk" d="M' +
+        gA.x1.toFixed(1) +
+        ' 27 V 23 H' +
+        gA.x2.toFixed(1) +
+        ' V 27"/>'
+    );
+    s.push(
+      '<text class="d-bt__grp" x="' +
+        ((gA.x1 + gA.x2) / 2).toFixed(1) +
+        '" y="19" text-anchor="middle">parallel · 同组 3 个，池 2</text>'
+    );
+    s.push("</g>");
+
+    s.push('<g data-grp-b opacity="0">');
+    s.push(
+      '<path class="d-bt__brk" d="M' +
+        gB.x1.toFixed(1) +
+        ' 27 V 23 H' +
+        gB.x2.toFixed(1) +
+        ' V 27"/>'
+    );
+    s.push(
+      '<text class="d-bt__grp" x="' +
+        ((gB.x1 + gB.x2) / 2).toFixed(1) +
+        '" y="19" text-anchor="middle">exclusive · 独占</text>'
+    );
+    s.push("</g>");
+
+    /* 泳道：一条一条的浅线，只是让人对得上行，不承担别的意义 */
+    for (i = 0; i <= BT.calls.length; i++) {
+      s.push(
+        '<line class="d-bt__lane" x1="' +
+          BT.x0 +
+          '" y1="' +
+          (BT.laneTop + i * BT.laneH - 4) +
+          '" x2="' +
+          BT.x1 +
+          '" y2="' +
+          (BT.laneTop + i * BT.laneH - 4) +
+          '"/>'
+      );
+    }
+
+    /* 左侧身份列 */
+    for (k = 0; k < BT.calls.length; k++) {
+      var ly = BT.laneTop + k * BT.laneH;
+      s.push(
+        '<text class="d-bt__idx" x="14" y="' + (ly + 10.5) + '">' + BT.calls[k].n + "</text>"
+      );
+      s.push(
+        '<text class="d-bt__name" x="28" y="' + (ly + 10.5) + '">' + BT.calls[k].name + "</text>"
+      );
+    }
+
+    /* 屏障：两条虚线穿过所有泳道。独占调用靠它表达「前后都等它」。 */
+    s.push('<g data-barrier opacity="0">');
+    [BT.calls[3].s, BT.calls[3].e].forEach(function (u) {
+      s.push(
+        '<line class="d-bt__barrier" x1="' +
+          X(u).toFixed(1) +
+          '" y1="29" x2="' +
+          X(u).toFixed(1) +
+          '" y2="' +
+          (BT.laneTop + BT.calls.length * BT.laneH - 6) +
+          '"/>'
+      );
+    });
+    s.push("</g>");
+
+    /* 五条调用 */
+    for (k = 0; k < BT.calls.length; k++) {
+      var c = BT.calls[k];
+      var by = BT.laneTop + k * BT.laneH;
+      s.push('<g data-bar' + k + ' opacity="0">');
+      s.push(
+        '<rect class="d-bt__bar' +
+          (c.ex ? " is-ex" : "") +
+          '" data-br' +
+          k +
+          ' x="' +
+          X(c.s).toFixed(1) +
+          '" y="' +
+          by +
+          '" width="0" height="' +
+          BT.barH +
+          '" rx="1"/>'
+      );
+      /* 完成刻：条尾那一道 2px。谁先完成，图上看得见。 */
+      s.push(
+        '<rect class="d-bt__cap' +
+          (c.ex ? " is-ex" : "") +
+          '" data-cap' +
+          k +
+          '="0" y="' +
+          (by + 3) +
+          '" width="2" height="' +
+          (BT.barH - 6) +
+          '" opacity="0"/>'
+      );
+      s.push("</g>");
+    }
+
+    /* 时间轴。不标数字：这些时长是示意，标了反而像真的。 */
+    s.push(
+      '<line class="d-bt__axis" x1="' + BT.x0 + '" y1="178" x2="' + BT.x1 + '" y2="178"/>'
+    );
+    for (i = 0; i <= 4; i++) {
+      var tx = BT.x0 + (i * span) / 4;
+      s.push(
+        '<line class="d-bt__tick" x1="' +
+          tx.toFixed(1) +
+          '" y1="178" x2="' +
+          tx.toFixed(1) +
+          '" y2="182"/>'
+      );
+    }
+    s.push('<text class="d-bt__grp" x="548" y="172" text-anchor="end">时间 →</text>');
+
+    /* 回填槽：按模型顺序，固定五个位置 */
+    s.push('<text class="d-bt__idx" x="14" y="202">回填</text>');
+    for (k = 0; k < 5; k++) {
+      s.push(
+        '<rect class="d-bt__res" data-res' +
+          k +
+          ' x="' +
+          (BT.x0 + k * 40) +
+          '" y="' +
+          BT.resY +
+          '" width="34" height="18" rx="2"/>'
+      );
+      s.push(
+        '<text class="d-bt__resn" data-resn' +
+          k +
+          ' x="' +
+          (BT.x0 + k * 40 + 17) +
+          '" y="' +
+          (BT.resY + 12.5) +
+          '" text-anchor="middle">' +
+          BT.calls[k].n +
+          "</text>"
+      );
+    }
+    s.push(
+      '<text class="d-bt__grp" x="' +
+        (BT.x0 + 208) +
+        '" y="202">序号 = 模型顺序</text>'
+    );
+
+    s.push("</svg>");
+
+    var host = document.createElement("div");
+    host.innerHTML = s.join("");
+    var svg = host.firstChild;
+    root.appendChild(svg);
+
+    var bars = [];
+    var caps = [];
+    var wraps = [];
+    for (k = 0; k < BT.calls.length; k++) {
+      bars.push(svg.querySelector("[data-br" + k + "]"));
+      caps.push(svg.querySelector("[data-cap" + k + "]"));
+      wraps.push(svg.querySelector("[data-bar" + k + "]"));
+    }
+    var resEls = [];
+    var resnEls = [];
+    for (k = 0; k < 5; k++) {
+      resEls.push(svg.querySelector("[data-res" + k + "]"));
+      resnEls.push(svg.querySelector("[data-resn" + k + "]"));
+    }
+    var grpA = svg.querySelector("[data-grp-a]");
+    var grpB = svg.querySelector("[data-grp-b]");
+    var barrier = svg.querySelector("[data-barrier]");
+
+    function paint(t) {
+      var j, c, p, w, full;
+
+      for (j = 0; j < BT.calls.length; j++) {
+        c = BT.calls[j];
+        p = clamp((t - c.a0) / (c.a1 - c.a0), 0, 1);
+        wraps[j].setAttribute("opacity", p > 0 ? "1" : "0");
+        full = X(c.e) - X(c.s);
+        w = full * easeOut(p);
+        /* 宽度小于 1px 时 rect 会画成一条脏边，干脆不给宽度 */
+        bars[j].setAttribute("width", w < 1 ? "0" : w.toFixed(1));
+        /* 完成刻：条走满才算完成，只亮一次，不来回闪 */
+        caps[j].setAttribute("opacity", p >= 1 ? "1" : "0");
+        caps[j].setAttribute("x", (X(c.e) - 2).toFixed(1));
+      }
+
+      grpA.setAttribute("opacity", clamp((t - 0.08) / 0.05, 0, 1).toFixed(2));
+      grpB.setAttribute("opacity", clamp((t - 0.33) / 0.05, 0, 1).toFixed(2));
+      barrier.setAttribute("opacity", clamp((t - 0.32) / 0.06, 0, 1).toFixed(2));
+
+      for (j = 0; j < 5; j++) {
+        var on = t >= BT.resAt[j];
+        resEls[j].setAttribute("class", "d-bt__res" + (on ? " is-on" : ""));
+        resnEls[j].setAttribute("class", "d-bt__resn" + (on ? " is-on" : ""));
+      }
+
+      if (t < 0.1) return 0;
+      if (t < 0.34) return 1;
+      if (t < 0.52) return 2;
+      if (t < 0.72) return 3;
+      return 4;
+    }
+
+    return {
+      paint: paint,
+      phases: 5,
+      text: function (i) {
+        return BT.text[clamp(i, 0, 4)];
+      },
+      jump: function (k) {
+        return clamp((clamp(k, 0, 4) + 0.5) / 5, 0, 1);
+      },
+      stepMarks: [0.1, 0.34, 0.52, 0.72],
+      marks: []
+    };
+  }
+
+  /* ==========================================================================
      播放器
      ========================================================================== */
 
@@ -1447,7 +1721,7 @@
 
   /* ---------- 启动 ---------- */
 
-  var DUR = { step: 11000, turn: 15000, boundary: 12000, log: 14000, seam: 12000 };
+  var DUR = { step: 11000, turn: 15000, boundary: 12000, log: 14000, seam: 12000, batch: 13000 };
 
   document.addEventListener("DOMContentLoaded", function () {
     Array.prototype.forEach.call(
@@ -1465,6 +1739,8 @@
             ? buildLog
             : kind === "seam"
             ? buildSeam
+            : kind === "batch"
+            ? buildBatch
             : null;
         if (builder) Player(root, builder, { duration: DUR[kind] });
       }

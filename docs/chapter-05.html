@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>模型看到的工具只有四样东西 — DeepSeek Harness 导读</title>
+    <meta
+      name="description"
+      content="defineTool 有十几个字段，只有四个跨过协议边界。一次调用要过固定六步，一批调用要经过屏障与滚动池，而失败从来不会结束回合。"
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+    <script>
+      (function () {
+        try {
+          var m = localStorage.getItem("dsh-theme") || "auto";
+          var dark =
+            m === "dark" ||
+            (m === "auto" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          document.documentElement.dataset.mode = m;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body data-page="chapter-05.html" data-chapter="第 05 章 · 工具系统">
+    <div
+      class="progress"
+      data-progress
+      role="progressbar"
+      aria-label="阅读进度"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    ></div>
+
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="brand" href="index.html">
+          <span class="brand__mark" aria-hidden="true"></span>
+          DeepSeek Harness 导读
+        </a>
+        <nav class="topnav" aria-label="站点导航">
+          <a href="index.html">目录</a>
+          <a class="is-optional" href="glossary.html">术语表</a>
+          <a class="is-optional" href="styleguide.html">规范</a>
+          <a
+            href="https://github.com/lzwanan/deepseek-harness-guide"
+            target="_blank"
+            rel="noreferrer noopener"
+            >本仓库</a
+          >
+          <a
+            class="is-optional"
+            href="https://github.com/deepseek-ai/deepseek-harness"
+            target="_blank"
+            rel="noreferrer noopener"
+            >上游源码</a
+          >
+          <button class="theme-toggle" type="button" data-theme-toggle>自动</button>
+        </nav>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="side" aria-label="章节目录">
+        <div class="side__group">
+          <p class="eyebrow">七章 · 从现象到源码</p>
+          <ul class="sidetree sidetree--all">
+            <li>
+              <a href="chapter-01.html"><span class="n">01</span><span>它是什么</span></a>
+            </li>
+            <li>
+              <a href="chapter-02.html"><span class="n">02</span><span>turn 与 step</span></a>
+            </li>
+            <li>
+              <a href="chapter-03.html"><span class="n">03</span><span>Session 日志</span></a>
+            </li>
+            <li>
+              <a href="chapter-04.html"><span class="n">04</span><span>插件模型</span></a>
+            </li>
+
+            <li class="is-open">
+              <a href="#s1"><span class="n">05</span><span>工具系统</span></a>
+              <ul class="sidetree__sub">
+                <li class="is-current">
+                  <a href="#s1"
+                    ><span class="n">5.1</span><span>模型只看到四样东西</span></a
+                  >
+                </li>
+                <li>
+                  <a href="#s2"
+                    ><span class="n">5.2</span><span>一次调用，固定六步</span></a
+                  >
+                </li>
+                <li>
+                  <a href="#s3"
+                    ><span class="n">5.3</span><span>一批调用怎么排</span></a
+                  >
+                </li>
+                <li>
+                  <a href="#s4"
+                    ><span class="n">5.4</span><span>出错不是结束</span></a
+                  >
+                </li>
+              </ul>
+            </li>
+
+            <li>
+              <a class="is-locked"
+                ><span class="n">06</span
+                ><span>组装<span class="soon">待补</span></span></a
+              >
+            </li>
+            <li>
+              <a class="is-locked"
+                ><span class="n">07</span
+                ><span>设计取舍<span class="soon">待补</span></span></a
+              >
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+      <article class="doc">
+        <p class="eyebrow">第 5 章 · <i>tools</i> — 5.1</p>
+        <h1 id="s1">模型看到的工具，只有四样东西</h1>
+        <p class="lede">
+          上一章讲能力怎么接上线。这一章讲接上之后，一次调用到底发生了什么 —— 因为「模型能动手」这件事的全部风险，都堆在这一层。
+        </p>
+
+        <p>
+          工具在仓库里就是一个定义对象。用 <code>defineTool</code> 写出来的字段不止四个：
+          <code>name</code>、<code>description</code>、<code>parameters</code>、
+          <code>output.schema</code>、<code>output.render</code>、<code>execute</code>、
+          <code>timeoutMs</code>、<code>isConcurrencySafe</code>、<code>projectContent</code>、
+          <code>finalizeContent</code>，以及给 Host 本地用的两个呈现函数。
+        </p>
+
+        <p class="eyebrow code__cap">packages/core/tools/README.zh.md · 有删节</p>
+        <pre class="code"><code>ctx.tools.register(defineTool({
+  name: 'read_file',
+  description: 'Read a file from disk.',
+  parameters: {
+    path: { type: 'string', required: true, description: 'Absolute file path' },
+    offset: { type: 'number' },
+    limit: { type: 'number' },
+  },
+  output: {
+    schema: { type: 'string' },
+    render: (_args, value) =&gt; [{ type: 'text', text: value }],
+  },
+  async execute(args, exec) {
+    return readFile(args.path, { encoding: 'utf8', signal: exec.signal })
+  },
+}))</code></pre>
+
+        <p>
+          但把定义投影成模型可见的 schema 时，<code>toSchema</code> 只挑走四样：
+        </p>
+
+        <p class="eyebrow code__cap">packages/core/tools/src/schema.ts</p>
+        <pre class="code"><code>const { name, description, parameters, deferLoading } = definition
+return {
+  name,
+  description,
+  parameters: detached,
+  ...deferLoading === true ? { deferLoading } : {},
+}</code></pre>
+
+        <p>
+          就这四行，是整章的地基。<strong><code>execute</code> 的函数体、<code>output.schema</code>
+          声明的输出形状、<code>timeoutMs</code>、两个呈现函数，一个都不跨过协议边界。</strong>
+          模型不知道 <code>read_file</code> 底下是 <code>fs/promises</code>
+          还是沙箱，也不知道它会返回什么类型 —— 它只拿到一个名字、一段说明、一份参数表。
+        </p>
+
+        <p>这条投影带来两个直接后果，都跟钱和速度有关：</p>
+
+        <ul>
+          <li>
+            <b>schema 是 prompt 的一部分。</b>每次请求的固定成本与可见定义的数量成正比；
+            用 <code>ctx.tools.restrict()</code> 隐藏一个工具，等于把它整份 schema 的 token 成本从那个 agent 身上移除。
+          </li>
+          <li>
+            <b>顺序稳定，前缀才稳定。</b>只要可见定义与它们的顺序不变，KV cache
+            就能复用；注册、卸载、或作用域限制会让复用从第一个变化的 schema token 起失效。
+          </li>
+        </ul>
+
+        <p>
+          还有一层不那么显眼：模型的参数在执行前被校验（<code>validateArgs</code>），
+          无效输入变成一条普通的错误结果，而不是异常。这一点决定了整章的调性 ——
+          <b>在这套系统里，失败也是一种结果</b>，不是中断。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>跨过协议边界的只有四样：<code>name</code>、<code>description</code>、<code>parameters</code>、<code>deferLoading</code>。</li>
+            <li>可见定义越多，每轮请求的固定 token 成本越高 —— 隐藏工具是真的省钱，不只是省事。</li>
+            <li>参数先校验再执行；校验失败是结果，不是崩溃。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>模型能不能知道某个工具的输出是什么类型？</summary>
+          <p>
+            不能。输出形状写在 <code>output.schema</code> 里，但投影时被丢掉了 ——
+            它是给注册表自己校验返回值用的，不发给模型。模型对结果的唯一认知来自
+            <code>output.render</code> 渲染出来的那几段内容。
+          </p>
+        </details>
+
+        <h2 id="s2">一次调用，固定六步</h2>
+        <p>
+          调用一旦被允许进入执行器，它就走一条顺序固定、但每段都可插手的流水线。
+          「顺序固定」这件事比「可插手」更重要：插件可以在任意一段挂上自己的钩子，却不能改变各段的相对位置。
+        </p>
+
+        <p class="eyebrow code__cap">packages/core/tools/src/events.ts + pipeline.ts · 顺序固定</p>
+        <pre class="code"><code>tools/pre-execute      瀑布：allow / deny / cancel / ask
+  ↓ 已注册的单调守卫     只能拒，拒了没人能翻案
+tools/execute          环绕分发：超时、重试、指标
+  ↓ execute()          你自己的工具主体
+projectContent         执行期准备好的图文内容
+tools/post-execute     瀑布：接受 / 替换 / 补上下文 / 拦
+  ↓ finalizeContent    最后一道只看内容的处理
+tools/result           只观测，结果已冻结</code></pre>
+
+        <p>
+          <b>第一段是审批。</b><code>tools/pre-execute</code> 是一个瀑布式钩子，每一层可以往下传（<code>next()</code>
+          等于放行），也可以直接给出允许、拒绝、取消，或者「问一下」。最后那个值得单独说：
+          如果部署里没有审批能力，<code>ask</code> 会被当成拒绝，而不是当成放行。
+        </p>
+
+        <p>
+          <b>第二段是守卫，它只能往一个方向走。</b><code>ctx.tools.guard()</code>
+          注册的策略排在瀑布之后，返回理由就拒绝调用，而且后续监听器<strong>没有办法把拒绝重新变成允许</strong>。
+          这是刻意的：审批可以是多轮协商的，安全边界不行。
+        </p>
+
+        <p>
+          <b>第三段是环绕分发。</b><code>tools/execute</code> 包在外层，用来做超时、重试、指标。
+          它能改的东西被收得很紧 —— 只能换 <code>exec.signal</code>，而注册表在进主体之前会把调用方原本的 signal
+          重新融回去。换句话说，包装层没法把调用方的取消权利偷走。
+        </p>
+
+        <p>
+          <b>然后是主体、内容、后置策略、最终结果。</b><code>projectContent</code>
+          装执行期准备好的内容；<code>tools/post-execute</code> 可以接受、替换、补上下文、或者拦掉；
+          <code>finalizeContent</code> 是最后一道只看内容的处理；<code>tools/result</code>
+          只能观测，因为那时结果已经冻结了。
+        </p>
+
+        <p>
+          这套顺序买到的东西是<b>互不相识</b>：权限钩子不知道有超时包装层，超时包装层不知道审计钩子在记什么。
+          它们都只认识那几个事件和那几个决策类型。
+        </p>
+
+        <p>
+          源码里还留着一条明确的设计拒绝，很能说明这层的价值观：<code>tools/pre-execute</code>
+          <b>有意不允许改写 <code>exec.arguments</code></b>。理由是 ——
+          一旦允许，日志里记的参数、界面上呈现的参数，就会跟实际跑的东西对不上。
+          宁可少一种能力，也不要一个会说谎的日志。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>六段顺序固定：<code>pre-execute</code> → 守卫 → <code>execute</code> → 主体 → <code>post-execute</code> → <code>result</code>。</li>
+            <li>守卫是单调的：能拒，不能翻案。没有审批能力时，<code>ask</code> 等于拒绝。</li>
+            <li>钩子之间互不认识 —— 它们只认识事件和决策类型，这是顺序固定换来的。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>为什么安全策略要做成「守卫」，而不是再写一个 <code>pre-execute</code> 钩子？</summary>
+          <p>
+            因为瀑布是可以协商的：后面的层能覆盖前面的决定。安全策略需要的正好相反 ——
+            一旦判定为危险，任何后来者都不能把它改回允许。位置（排在瀑布之后）
+            和语义（单调）两件事一起，才保证了这个性质。
+          </p>
+        </details>
+
+        <h2 id="s3">一批调用怎么排</h2>
+        <p>
+          一个 step 里，模型可以一次吐出好几个调用。执行器拿到的不是「一次调用」，是整批 ——
+          所以它必须先回答一个问题：这些调用里，谁能跟谁同时跑。
+        </p>
+
+        <p>
+          答案来自定义里一个可选函数 <code>isConcurrencySafe(args)</code>：返回
+          <code>true</code> 的进并行组，返回 <code>false</code> 的构成<b>屏障</b>（exclusive）——
+          它前面所有调用必须结算完它才开始，它没结束后面谁也进不来。
+          注意这个函数拿得到参数，所以同一个工具可以对不同参数给不同答案。
+        </p>
+
+        <p>
+          并行组不是「全都同时跑」，而是一个<b>有界滚动池</b>：上限来自
+          <code>maxParallelToolCalls</code>，默认 10，设成 1 就是串行，传非正整数会直接抛
+          <code>RangeError</code>。位子空出来一个，后面的才补进去一个。
+        </p>
+
+        <figure class="scope" id="fig-1" data-figure="batch">
+          <div class="scope__bar">
+            <span class="scope__id">FIG.01</span>
+            <span class="scope__title">BATCH · 派发可以重叠，顺序不能乱</span>
+            <span class="scope__bar__sp"></span>
+            <span class="scope__live" data-live><i></i><span>running</span></span>
+          </div>
+          <div class="scope__stage" data-stage></div>
+          <p class="readout" data-readout></p>
+          <div class="scope__ctrl">
+            <button
+              class="play"
+              type="button"
+              data-play
+              data-state="paused"
+              aria-pressed="false"
+              aria-label="播放动画"
+            >
+              <svg class="icon-play" viewBox="0 0 9 10" aria-hidden="true">
+                <path d="M0 0L9 5L0 10V0Z" fill="currentColor" />
+              </svg>
+              <svg class="icon-pause" viewBox="0 0 9 10" aria-hidden="true">
+                <rect x="0" y="0" width="3" height="10" fill="currentColor" />
+                <rect x="6" y="0" width="3" height="10" fill="currentColor" />
+              </svg>
+            </button>
+            <div class="scrub">
+              <div class="scrub__rail"><div class="scrub__fill" data-fill></div></div>
+              <div class="scrub__segs" data-segs></div>
+              <div class="scrub__knob" data-knob></div>
+              <input
+                type="range"
+                min="0"
+                max="1000"
+                value="0"
+                step="1"
+                data-scrub
+                aria-label="动画进度"
+              />
+            </div>
+            <div class="speed" role="group" aria-label="播放速度">
+              <button type="button" data-speed="0.5" aria-pressed="false">.5×</button>
+              <button type="button" data-speed="1" aria-pressed="true">1×</button>
+              <button type="button" data-speed="2" aria-pressed="false">2×</button>
+            </div>
+            <span class="time" data-time></span>
+          </div>
+        </figure>
+        <p class="figcap">
+          五条横条是五次调用，横向是时间。看两处：③ 的起点正好压在 ② 的终点上（位子刚空出来），
+          ④ 两侧的虚线穿过所有泳道（屏障）。再对比最下面那排槽位 —— 它不看完成时间，只按模型写的序号。
+        </p>
+
+        <p>
+          图里还有一件没画出来、但源码里明确写了的事：<b>开始之前还会重新分类一次</b>。
+          如果并行组跑着跑着冒出一个独占调用，它得等当前池子排空；反过来，独占调用也不会因为它后面还有并行的就提前放行。
+        </p>
+
+        <p>
+          至于乱序，收口收在这里：<b>派发可以在时钟上重叠，但策略、结果、结果上下文的顺序永远按模型发出的顺序。</b>
+          模型看到的永远是 ①②③④⑤，它没有「并发」这个概念，也不需要。
+        </p>
+
+        <p>
+          中止时的处理也很讲究：停止补位、等已经开始的工作跑完、给被跳过的调用补一条有序的错误结果。
+          为什么非要补？因为日志要能回放 —— 缺一条结果的批次，回放时是断的。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>并行与独占由定义上的 <code>isConcurrencySafe(args)</code> 决定，不是由工具名决定。</li>
+            <li>并行组是有界滚动池（默认 10），不是无限并发；独占调用是一道前后都等的屏障。</li>
+            <li>派发可以重叠，回填顺序永远是模型的顺序 —— 中止时连跳过的调用也要补结果，否则回放会断。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>把 <code>maxParallelToolCalls</code> 调成 1 会发生什么？</summary>
+          <p>
+            并行组退化成串行：池子里只有一个位子，一次只能进一个。但屏障还是屏障，
+            顺序也还是模型顺序 —— 变的只是重叠程度，不变的是语义。所以这个值可以当性能旋钮拧，
+            不会改变任何可观察的结果。
+          </p>
+        </details>
+
+        <h2 id="s4">出错不是结束</h2>
+        <p>
+          这是整套设计里最容易被低估的一条：<b>工具调用失败，不会结束回合。</b>
+          名字找不到、参数不合 schema、主体抛异常、被策略拒掉、超时 —— 全部变成一条结果，交回模型。
+        </p>
+
+        <p class="eyebrow code__cap">packages/core/tools/src/contracts.ts · 几个会出现的错误码</p>
+        <pre class="code"><code>UNKNOWN_TOOL                 名字不在这个 agent 的可见集合里
+ABORTED_BEFORE_DISPATCH      还没进主体就被取消
+ABORTED                      主体跑完了才取消，成功结果被替换
+TOOL_TIMEOUT                 包装层设的截止时间到了</code></pre>
+
+        <p>
+          它们在模型眼里长什么样？统一是 <code>Error: &lt;message&gt;</code> 一行。
+          而结构化的失败详情（<code>name</code> / <code>code</code> / <code>reason</code>）
+          会保留在持久投影里，<b>但不进入模型内容</b> —— 给机器看的给机器，给模型看的只有一句人话。
+        </p>
+
+        <p>
+          前面提过取消是协作式的：工具主体会收到 <code>exec.signal</code>，它<b>必须观测</b>。
+          这个「必须」不是礼貌用语，而是整套超时机制成立的前提 —— 因为这里没有强制中断，
+          只有一个请求停止的信号。
+        </p>
+
+        <p>
+          最能说明这一点的，是 <code>timeoutMs</code> 的真实处境。定义上写着它，看起来像是框架会执行截止时间，
+          但注册表的源码里写得很清楚：<b><code>timeoutMs</code> 仅作声明之用，注册表绝不会强制执行。</b>
+          真正让它生效的是另一个包 —— <code>packages/guard/timeout-policy</code>，
+          一个挂在 <code>tools/execute</code> 上的包装层，在 <code>exec.signal</code> 上装表，赢了就返回 <code>TOOL_TIMEOUT</code>。
+        </p>
+
+        <p>
+          而那个包的文档自己就把局限写明白了：<b>它无法硬性停止下游工作</b>。
+          一个忽略取消的工具，仍然会让调用方一直等下去。这不是没做完，这是协作式取消的固有代价 ——
+          要能强行杀，就得让工具跑在能被杀的进程里，而那件事属于沙箱，不属于注册表。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>任何失败都是一条结果，回合继续 —— 否则模型没法「看到错误再改」。</li>
+            <li>模型只看到 <code>Error: …</code> 一行；结构化详情留在持久层，不给模型。</li>
+            <li><code>timeoutMs</code> 只是声明，真正执行它的是 <code>guard/timeout-policy</code>，而且只能请求停止，不能强杀。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>工具主体抛了一个异常，这段代码应该写在哪一层？</summary>
+          <p>
+            随便哪一层都能兜住，但要看你想要什么：写在主体里，你能给出最具体的错误文案；
+            交给注册表，它会把异常规范化成结构化错误（<code>isError</code>），模型看到 <code>Error: …</code>；
+            想在出错后再补一句「试试别的路径」，那是 <code>tools/post-execute</code> 的活。
+            <b>能兜住不等于应该兜住 —— 越靠后兜，能带的信息越少。</b>
+          </p>
+        </details>
+
+        <nav class="pager" aria-label="章节导航">
+          <a class="pager__item" href="chapter-04.html">
+            <span class="pager__k">← 上一章</span>
+            <span class="pager__t">04 · 插件模型</span>
+          </a>
+          <span class="pager__item pager__next is-off">
+            <span class="pager__k">下一章 →</span>
+            <span class="pager__t">06 组装 · 待补</span>
+          </span>
+        </nav>
+      </article>
+
+      <aside class="toc" aria-label="本页目录">
+        <p class="eyebrow">本页</p>
+        <ul>
+          <li><a data-n="5.1" href="#s1" class="is-active">模型只看到四样东西</a></li>
+          <li><a data-n="5.2" href="#s2">一次调用，固定六步</a></li>
+          <li><a data-n="5.3" href="#s3">一批调用怎么排</a></li>
+          <li><a data-n="5.4" href="#s4">出错不是结束</a></li>
+        </ul>
+        <hr class="toc__rule" />
+        <p class="eyebrow">涉及模块</p>
+        <ul class="toc__modules">
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/core/tools"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/core/tools"
+              >core/tools</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/core/tool-executor-native"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/core/tool-executor-native"
+              >tool-executor-native</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/core/tool-executor-ptc"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/core/tool-executor-ptc"
+              >tool-executor-ptc</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/guard/timeout-policy"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 packages/guard/timeout-policy"
+              >guard/timeout-policy</a
+            >
+          </li>
+        </ul>
+        <p class="eyebrow" style="margin-top: 18px">快捷键</p>
+        <ul class="toc__keys">
+          <li><kbd>空格</kbd> 播放 / 暂停</li>
+          <li><kbd>拖动</kbd> 进度条来回看</li>
+        </ul>
+      </aside>
+    </div>
+
+    <nav class="jump" data-jump aria-label="节导航">
+      <a class="jump__b" data-jump-prev href="#s1">
+        <span class="jump__a" aria-hidden="true">↑</span>
+        <span class="jump__n" data-jump-prev-n></span>
+        <span class="jump__t" data-jump-prev-t></span>
+      </a>
+      <a class="jump__b" data-jump-next href="#s2">
+        <span class="jump__a" aria-hidden="true">↓</span>
+        <span class="jump__n" data-jump-next-n></span>
+        <span class="jump__t" data-jump-next-t></span>
+      </a>
+    </nav>
+
+    <script src="assets/site.js" defer></script>
+    <script src="assets/figures.js" defer></script>
+  </body>
+</html>

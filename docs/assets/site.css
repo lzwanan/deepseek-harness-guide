@@ -3564,6 +3564,93 @@ a.row--live .row__n {
   fill: var(--panel-ink-3);
 }
 
+/* ---------- 图 6：批次调度（第 05 章） ---------- */
+
+/* 这张图的全部主张是一句话：时间轴允许重叠，序号轴不允许。
+   所以上半部分是甘特条（时间），下半部分是五个固定槽位（序号），
+   屏障线同时穿过两者 —— 它既是时间上的等待，也是顺序上的分界。 */
+
+.d-bt__idx {
+  font-family: var(--mono);
+  font-size: 8px;
+  fill: var(--panel-ink-4);
+}
+
+.d-bt__name {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  fill: var(--panel-ink-2);
+}
+
+.d-bt__lane {
+  stroke: var(--panel-line);
+  stroke-width: 1;
+}
+
+.d-bt__bar {
+  fill: var(--panel-fill);
+  stroke: var(--panel-edge);
+}
+
+/* 独占调用换一种材质，不用更粗的线 —— 粗细是装饰，材质才是信息 */
+.d-bt__bar.is-ex {
+  fill: var(--signal-wash);
+  stroke: var(--signal-line);
+}
+
+.d-bt__cap {
+  fill: var(--panel-ink-3);
+}
+
+.d-bt__cap.is-ex {
+  fill: var(--signal);
+}
+
+.d-bt__barrier {
+  fill: none;
+  stroke: var(--panel-ink-4);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.d-bt__brk {
+  fill: none;
+  stroke: var(--panel-axis);
+  stroke-width: 1;
+}
+
+.d-bt__grp {
+  font-family: var(--sans);
+  font-size: 8px;
+  fill: var(--panel-ink-3);
+}
+
+.d-bt__axis,
+.d-bt__tick {
+  stroke: var(--panel-axis);
+  stroke-width: 1;
+}
+
+.d-bt__res {
+  fill: none;
+  stroke: var(--panel-line);
+}
+
+.d-bt__res.is-on {
+  fill: var(--signal-wash);
+  stroke: var(--signal-line);
+}
+
+.d-bt__resn {
+  font-family: var(--mono);
+  font-size: 8px;
+  fill: var(--panel-ink-4);
+}
+
+.d-bt__resn.is-on {
+  fill: var(--signal);
+}
+
 /* ---------- 动效降级 ---------- */
 
 @media (prefers-reduced-motion: reduce) {

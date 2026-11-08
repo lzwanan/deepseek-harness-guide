@@ -279,7 +279,7 @@
             <span class="glo__desc"
               ><b>某个能力的具体实现。</b>比如 fs provider 决定文件读写是走本地磁盘还是走远程沙箱。换掉它，依赖它的工具会一起换掉。</span
             >
-            <span class="glo__src">05 · 能力缝</span>
+            <span class="glo__src">04 · 插件模型</span>
           </li>
 
           <li class="glo__item" id="seam" data-glo-item="seam 能力缝 接口 消费者 解耦">
@@ -287,7 +287,7 @@
             <span class="glo__desc"
               ><b>接口 + 实现 + 消费者，三件套才算一条缝。</b>有了缝，才能只换中间那块而不动两端。没有缝的地方，任何改动都会变成一个全局搜索任务。</span
             >
-            <span class="glo__src">05 · 能力缝</span>
+            <span class="glo__src">04 · 插件模型</span>
           </li>
 
           <li class="glo__item" id="bundle" data-glo-item="bundle 打包 组合 预设 集合">
@@ -322,6 +322,50 @@
               所以装载顺序不敏感，依赖关系一目了然。</span
             >
             <span class="glo__src">04 · 插件模型</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="glo__group" data-glo-group>
+        <header class="glo__gh">
+          <span class="glo__gl">05 / 工具与执行</span>
+          <span class="glo__gl" data-glo-count>4 条</span>
+        </header>
+        <ul class="glo__list">
+          <li class="glo__item" id="schema" data-glo-item="schema 模式 参数表 形状 描述 tool schema">
+            <span class="glo__term">schema</span>
+            <span class="glo__desc"
+              ><b>模型的工具说明书：名字、说明、参数表。</b>定义里还有实现和输出形状，但都不发给模型。
+              可见的工具越多，每轮请求的固定 token 成本越高。</span
+            >
+            <span class="glo__src">05 · 工具系统</span>
+          </li>
+
+          <li class="glo__item" id="waterfall" data-glo-item="waterfall 瀑布 钩子 hook 中间件 拦截">
+            <span class="glo__term">waterfall / 瀑布</span>
+            <span class="glo__desc"
+              ><b>一层层往下传的钩子。</b>每层可以放行（交给下一层），也可以直接改判。
+              执行前后各一条：<code>tools/pre-execute</code> 与 <code>tools/post-execute</code>。</span
+            >
+            <span class="glo__src">05 · 工具系统</span>
+          </li>
+
+          <li class="glo__item" id="guard" data-glo-item="guard 守卫 策略 单调 拒绝 安全">
+            <span class="glo__term">guard / 守卫</span>
+            <span class="glo__desc"
+              ><b>只能拒、不能翻案的安全策略。</b>它排在审批瀑布之后，返回理由就拒绝，
+              后面的监听器没法把它改回允许 —— 审批可以商量，边界不行。</span
+            >
+            <span class="glo__src">05 · 工具系统</span>
+          </li>
+
+          <li class="glo__item" id="barrier" data-glo-item="barrier 屏障 独占 exclusive 并发 并行 parallel">
+            <span class="glo__term">屏障 / barrier</span>
+            <span class="glo__desc"
+              ><b>独占调用画出的一条界。</b>它前面所有调用必须结算完它才开始，它没结束后面谁也进不来。
+              并行调用则只是共享一个有上限的池子，可以重叠。</span
+            >
+            <span class="glo__src">05 · 工具系统</span>
           </li>
         </ul>
       </section>
