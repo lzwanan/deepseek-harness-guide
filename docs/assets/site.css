@@ -3721,6 +3721,115 @@ a.row--live .row__n {
   fill: var(--signal);
 }
 
+/* ---------- 图 8：冻结面与滑动面（第 07 章） ---------- */
+
+/* 左边虚线、右边实线，是这张图唯一必须一眼看到的对比：
+   虚线框 = 会换代的内部结构，实线框 = 已经写定的记录。
+   代次、位移、配色都只是辅助，这个对比立住了图就成立。 */
+
+.d-fz__k {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  fill: var(--panel-ink-2);
+}
+
+.d-fz__s {
+  font-family: var(--sans);
+  font-size: 8px;
+  fill: var(--panel-ink-4);
+}
+
+.d-fz__gen {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  fill: var(--panel-ink-3);
+}
+
+.d-fz__w {
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: 0.12em;
+  fill: var(--panel-ink-3);
+}
+
+.d-fz__wall {
+  fill: none;
+  stroke: var(--panel-axis);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.d-fz__box {
+  fill: var(--panel-fill);
+  stroke: var(--panel-ink-4);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+}
+
+/* 换代的瞬间转实线：虚线变实线是这张图里「变了」的信号本身 */
+.d-fz__box.is-churn {
+  stroke: var(--signal-line);
+  stroke-dasharray: none;
+}
+
+.d-fz__n {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  fill: var(--panel-ink-2);
+}
+
+.d-fz__d {
+  font-family: var(--sans);
+  font-size: 7.5px;
+  fill: var(--panel-ink-4);
+}
+
+/* 飞行中的小块和落地后的记录条是同一个元素 —— 所以样式得能在两者之间切干净 */
+.d-fz__mg {
+  fill: var(--signal-soft);
+  stroke: var(--signal-line);
+  stroke-width: 1;
+}
+
+.d-fz__mg.is-home {
+  fill: var(--panel-fill);
+  stroke: var(--panel-edge);
+}
+
+.d-fz__mg.is-home.is-fresh {
+  fill: var(--signal-wash);
+  stroke: var(--signal-line);
+}
+
+.d-fz__sq {
+  font-family: var(--mono);
+  font-size: 7px;
+  fill: var(--panel-ink-4);
+}
+
+.d-fz__e {
+  font-family: var(--mono);
+  font-size: 8px;
+  fill: var(--panel-ink-2);
+}
+
+.d-fz__ver {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  fill: var(--panel-ink-4);
+}
+
+.d-fz__ver.is-on {
+  fill: var(--signal);
+}
+
+.d-fz__note {
+  font-family: var(--sans);
+  font-size: 7.5px;
+  fill: var(--panel-ink-3);
+}
+
 /* ---------- 动效降级 ---------- */
 
 @media (prefers-reduced-motion: reduce) {

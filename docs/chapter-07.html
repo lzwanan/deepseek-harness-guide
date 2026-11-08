@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>只有一个东西需要冻结 — DeepSeek Harness 导读</title>
+    <meta
+      name="description"
+      content="为什么内部 API 可以随时破坏，日志格式却要四代检查点。以及这套取舍在文档、验证器和心智负担上开出的账单。"
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+    <script>
+      (function () {
+        try {
+          var m = localStorage.getItem("dsh-theme") || "auto";
+          var dark =
+            m === "dark" ||
+            (m === "auto" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          document.documentElement.dataset.mode = m;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body data-page="chapter-07.html" data-chapter="第 07 章 · 取舍">
+    <div
+      class="progress"
+      data-progress
+      role="progressbar"
+      aria-label="阅读进度"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    ></div>
+
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="brand" href="index.html">
+          <span class="brand__mark" aria-hidden="true"></span>
+          DeepSeek Harness 导读
+        </a>
+        <nav class="topnav" aria-label="站点导航">
+          <a href="index.html">目录</a>
+          <a class="is-optional" href="glossary.html">术语表</a>
+          <a class="is-optional" href="styleguide.html">规范</a>
+          <a
+            href="https://github.com/lzwanan/deepseek-harness-guide"
+            target="_blank"
+            rel="noreferrer noopener"
+            >本仓库</a
+          >
+          <a
+            class="is-optional"
+            href="https://github.com/deepseek-ai/deepseek-harness"
+            target="_blank"
+            rel="noreferrer noopener"
+            >上游源码</a
+          >
+          <button class="theme-toggle" type="button" data-theme-toggle>自动</button>
+        </nav>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="side" aria-label="章节目录">
+        <div class="side__group">
+          <p class="eyebrow">七章 · 从现象到源码</p>
+          <ul class="sidetree sidetree--all">
+            <li>
+              <a href="chapter-01.html"><span class="n">01</span><span>它是什么</span></a>
+            </li>
+            <li>
+              <a href="chapter-02.html"><span class="n">02</span><span>turn 与 step</span></a>
+            </li>
+            <li>
+              <a href="chapter-03.html"><span class="n">03</span><span>Session 日志</span></a>
+            </li>
+            <li>
+              <a href="chapter-04.html"><span class="n">04</span><span>插件模型</span></a>
+            </li>
+            <li>
+              <a href="chapter-05.html"><span class="n">05</span><span>工具系统</span></a>
+            </li>
+            <li>
+              <a href="chapter-06.html"><span class="n">06</span><span>组装</span></a>
+            </li>
+
+            <li class="is-open">
+              <a href="#s1"><span class="n">07</span><span>设计取舍</span></a>
+              <ul class="sidetree__sub">
+                <li class="is-current">
+                  <a href="#s1"
+                    ><span class="n">7.1</span><span>只有一个东西需要冻结</span></a
+                  >
+                </li>
+                <li>
+                  <a href="#s2"
+                    ><span class="n">7.2</span><span>其余的都允许碎掉</span></a
+                  >
+                </li>
+                <li>
+                  <a href="#s3"
+                    ><span class="n">7.3</span><span>接口只剩一句声明</span></a
+                  >
+                </li>
+                <li>
+                  <a href="#s4"
+                    ><span class="n">7.4</span><span>这套取舍的账单</span></a
+                  >
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+      <article class="doc">
+        <p class="eyebrow">第 7 章 · <i>trade-off</i> — 7.1</p>
+        <h1 id="s1">只有一个东西需要冻结</h1>
+        <p class="lede">
+          前六章拆开了一个能跑的 dsh：循环、日志、插件、工具、组装。这一章不加新机制，只回答一个问题 ——
+          它凭什么敢在内部随便改，却对一样东西小心到近乎偏执。
+        </p>
+
+        <p>
+          先把前六章摊开看一眼。每一章讲的其实都是一个「接口」：第 02 章的 turn 与 step 是<b>行为</b>的接口，
+          第 03 章的日志是<b>事实</b>的接口，第 04 章的 <code>inject</code> 是<b>结构</b>的接口，
+          第 05 章的 schema 是<b>模型</b>看到的接口，第 06 章的 patch 是<b>配置</b>的接口。
+        </p>
+
+        <p>
+          这五样里，只有一样会离开进程。其余四样都活在一次运行的内存里 —— 进程一退，它们就不存在了，
+          下一版想改成什么样，没有人能拿出旧证据来抗议。但日志要落盘，落盘之后就有第二个读者：
+          <b>明天打开这个文件的另一个进程</b>。它可能是同一个版本，也可能是半年前装的那一个。
+        </p>
+
+        <figure class="scope" id="fig-1" data-figure="freeze">
+          <div class="scope__bar">
+            <span class="scope__id">FIG.01</span>
+            <span class="scope__title">FREEZE · 一边随便换，一边不能动</span>
+            <span class="scope__bar__sp"></span>
+            <span class="scope__live" data-live><i></i><span>running</span></span>
+          </div>
+          <div class="scope__stage" data-stage></div>
+          <p class="readout" data-readout></p>
+          <div class="scope__ctrl">
+            <button
+              class="play"
+              type="button"
+              data-play
+              data-state="paused"
+              aria-pressed="false"
+              aria-label="播放动画"
+            >
+              <svg class="icon-play" viewBox="0 0 9 10" aria-hidden="true">
+                <path d="M0 0L9 5L0 10V0Z" fill="currentColor" />
+              </svg>
+              <svg class="icon-pause" viewBox="0 0 9 10" aria-hidden="true">
+                <rect x="0" y="0" width="3" height="10" fill="currentColor" />
+                <rect x="6" y="0" width="3" height="10" fill="currentColor" />
+              </svg>
+            </button>
+            <div class="scrub">
+              <div class="scrub__rail"><div class="scrub__fill" data-fill></div></div>
+              <div class="scrub__segs" data-segs></div>
+              <div class="scrub__knob" data-knob></div>
+              <input
+                type="range"
+                min="0"
+                max="1000"
+                value="0"
+                step="1"
+                data-scrub
+                aria-label="动画进度"
+              />
+            </div>
+            <div class="speed" role="group" aria-label="播放速度">
+              <button type="button" data-speed="0.5" aria-pressed="false">.5×</button>
+              <button type="button" data-speed="1" aria-pressed="true">1×</button>
+              <button type="button" data-speed="2" aria-pressed="false">2×</button>
+            </div>
+            <span class="time" data-time></span>
+          </div>
+        </figure>
+        <p class="figcap">
+          只看边框就够了：左边四个是<b>虚线</b>，右边五条是<b>实线</b>。虚线框在整段动画里换了两次代号、挪了两次位置；
+          右边那条带子只做一件事 —— 变长。
+        </p>
+
+        <p>
+          于是有了全仓库唯一那个手工维护的版本号。<code>packages/core/session/src/types.ts</code> 里写着：
+        </p>
+
+        <p class="eyebrow code__cap">packages/core/session/src/types.ts · SESSION_FORMAT_VERSION</p>
+        <pre class="code"><code>export const SESSION_FORMAT_VERSION = 4</code></pre>
+
+        <p>
+          文档把这个位置说得很死：它<b>是代码里唯一手工维护的写入器版本号</b>。包版本、codec 的导出名、
+          测试 fixture 的文件名、投影缓存的版本 —— 都不是权威来源，都不能拿来推断格式。
+          这一句看似在讲工程纪律，实际上是在划一条线：<b>整个仓库只有这一个数字需要冻结</b>。
+        </p>
+
+        <p>
+          冻结的方式也不是「写个文档说别改」。它是一套三段式：每次结构变更先写一份<b>确认记录</b>，
+          记录里绑定精确的 schema 快照；变更后的 schema 存成同目录的 <code>.schema.json</code>；
+          被接受的那一代再打一个<b>检查点</b>（现在是 <code>finalized/v4.json</code>），把这一代的语义哈希钉死。
+          记录不能改，检查点不能改，后来的记录只能往上接。
+        </p>
+
+        <p>
+          所以第 03 章那句「日志只增」，不只是运行时的一条约束，它在这个仓库里是一条<b>跨版本的历史约束</b>：
+          文件只变长，读它的规矩也只能变长。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>五类接口里，只有日志会离开进程 —— 只有它需要被第二个读者读懂。</li>
+            <li><code>SESSION_FORMAT_VERSION</code> 是仓库里唯一手工维护的版本号；包版本、fixture 名都不是。</li>
+            <li>冻结靠的是三段式：确认记录 → schema 快照 → 不可变的检查点。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>同一个团队改了 <code>tool/call</code> 事件的字段名，为什么不能只改代码？</summary>
+          <p>
+            因为磁盘上已经有一批用旧字段名写下的日志。新代码要能读它们，旧代码也要能安全地拒绝不认识的新日志 ——
+            这两件事都必须被<b>证明</b>，而不是被假定。证明的载体就是那份确认记录：它同时写着旧记录怎么读、
+            旧读取器怎么处理新记录。代码里改四行，记录里要回答两个方向。
+          </p>
+        </details>
+
+        <h2 id="s2">其余的都允许碎掉</h2>
+        <p>
+          反过来看另一头。同一套代码里，一个 alpha 版本就敢把两个工具的参数改名，而且<b>不留别名</b>。
+        </p>
+
+        <p class="eyebrow code__cap">docs/upgrade-guide/v0.2.2-alpha.3/subagent-names</p>
+        <pre class="code"><code>- send_message({ agent_id, message })
++ send_message({ agent, message })
+- interrupt_agent({ agent_id })
++ interrupt_agent({ agent })
+
+# 仍传入 agent_id 的调用无法通过参数校验</code></pre>
+
+        <p>
+          没有兼容期，没有「两个参数都收，旧的打个 deprecation 警告」。旧写法直接校验失败。
+          这在很多项目里是不可想象的，但它在这里是<b>可以承担的</b> ——
+          因为调用方是脚本、是 PTC 程序、是 SDK，它们都跟 dsh 同版本发布；
+          参数名对不上时，报错明确、位置明确、改法明确。
+        </p>
+
+        <p>
+          这类变更有多少？<code>docs/upgrade-guide/</code> 下按版本分了 12 个目录，
+          一共 119 条升级说明。平均下来每个版本十条 —— 这就是「允许碎」在仓库里留下的形状：
+          碎得很频繁，但每碎一次都留一份带迁移步骤的记录。
+        </p>
+
+        <p>
+          敢这么碎，有三个前提，缺一条都不成立：
+        </p>
+
+        <ul>
+          <li><b>依赖在自己手里。</b>上层框架以源码形式 vendored 进仓库（<code>@deepseek-ai/cordis</code> 那一套，九个包），随 harness 一起发布。想改框架就能改，不用等上游。</li>
+          <li><b>插件之间没有全局 ABI。</b>两个插件唯一的契约是 <code>inject</code> 声明的那几个键。键还在，实现换掉、参数换掉、包名换掉，都不影响别人。</li>
+          <li><b>入口只有一个。</b>所有应用都从 <code>dsh --profile &lt;name&gt;</code> 启动，仓库里有个验证脚本专门拒绝任何绕过它的 Node 应用路径。没有旁路，就没有旁路的兼容负担。</li>
+        </ul>
+
+        <p>
+          但这里有一条刹车，而且很硬。上面那条改名，代价不只是改脚本：
+          新版本写入的 <code>subagent/catalog</code> 载荷是第 3 版，
+          <b>更早的发布打不开包含它的 Session</b>。所以迁移步骤里有一条是
+          「在创建 subagent 之前，升级所有打开同一 Session 存储的进程」。
+        </p>
+
+        <p>
+          这就是全章的分界线：<b>API 可以碎，已经写下的日志不行</b>。碎 API 时你面对的是同事的脚本；
+          碎日志时你面对的是用户三个月前那次对话。前者能通知、能重跑，后者不能。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>参数改名不留别名 —— 旧调用直接校验失败。12 个版本、119 条升级说明就是这种做法的痕迹。</li>
+            <li>敢碎的前提：框架 vendored、插件间只有 <code>inject</code>、入口唯一。</li>
+            <li>刹车只有一条：不能弄丢已经写下的日志。API 的错能通知，日志的错不能。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>如果团队想给 <code>send_message</code> 加一个可选参数，需要升级指南吗？</summary>
+          <p>
+            要，但性质不同。加<b>可选</b>参数不会让旧调用失败，属于「行为变了，调用方可能想知道」，
+            写一条说明就够。上面那条不一样 —— 它删掉了一个必填参数的名字，
+            旧调用会<b>直接失败</b>，所以必须有迁移步骤，而且要写清楚失败长什么样。
+            这两种变更在仓库里走的是同一份文档格式，但读者能不能照做，取决于写的人分不分得清。
+          </p>
+        </details>
+
+        <h2 id="s3">接口只剩一句声明</h2>
+        <p>
+          把「允许碎」推到极致，会得到一个反直觉的结果：<b>能碎的东西越多，剩下的声明就必须越短</b>。
+          因为声明越长，能碎的空间就越小。
+        </p>
+
+        <p>
+          于是前六章的每个接口，最后都收敛成一句话：
+        </p>
+
+        <ul>
+          <li><code>inject: ['shell']</code> —— 两个插件之间，只共享一个字符串。</li>
+          <li>工具 schema —— 模型看到的只有名字、说明、参数；执行器是谁、怎么跑，它永远不知道。</li>
+          <li><code>id: tool-fs</code> 加一个 config —— patch 定位靠 id，替换靠整条覆盖，没有别的语法。</li>
+          <li>事件类型 —— 日志里每个事实只靠一个类型名被识别，其余字段是它的内容。</li>
+        </ul>
+
+        <p>
+          仓库的架构文档里有一句话概括了这件事：<b>不存在需要打补丁的特权内核</b>。
+          扩展 dsh 的方式是把插件挂在别的插件旁边，而不是去改某个核心文件。
+          这句话的成本很高 —— 循环、工具注册表、会话日志、模型适配器，全都得做成可替换的插件。
+          但收益也很直接：既然没有内核，也就没有「内核版本」要兼容。
+        </p>
+
+        <p>
+          最能说明这套取舍的，是两个数字的对比：
+        </p>
+
+        <ul>
+          <li>日志格式的变更，有 <b>24 份</b>确认记录，每份绑定一份 schema 快照，还压着一个不可变的检查点。</li>
+          <li>其它所有变更，只有 <b>119 条</b>升级说明，一份一份写清「变了什么、怎么迁」。</li>
+        </ul>
+
+        <p>
+          注意这两者的<b>形式差别</b>，比数字更有意思。确认记录是机器可校验的：它有 <code>kind</code> 字段、
+          有前驱记录、有摘要哈希，验证器会拒绝缺失前驱、拒绝环、拒绝摘要不匹配。
+          升级说明不是 —— 它是一份给人读的文档，能校验的只有「中英两份内容一致」。
+        </p>
+
+        <p>
+          换句话说：<b>能自动检查的地方，才配得上「冻结」这个词</b>。
+          其余的靠约定，约定靠人，人靠文档。这个分工是清醒的，不是偷懒。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>能碎的东西越多，剩下的声明就必须越短；声明越短，能碎的空间越大。</li>
+            <li>每个接口最后都只剩一句：<code>inject</code> 一个键、schema 三个字段、patch 一个 id、事件一个类型名。</li>
+            <li>只有 24 份日志记录是机器可校验的，其余 119 条靠人 —— 能自动检查的才配叫冻结。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>为什么日志变更要用「机器可校验」的形式，而升级说明不用？</summary>
+          <p>
+            因为日志的读者在未来，升级说明的读者在当下。未来那个读者（另一个版本的进程）不会来读文档，
+            它只会照着 schema 解析字节 —— 所以约束必须写进能被程序检查的地方。
+            而升级说明的读者是正在迁移的人，他需要的是步骤和失败时的样子，这两样都没法自动验证。
+            形式跟读者匹配，不是跟重要性匹配。
+          </p>
+        </details>
+
+        <h2 id="s4">这套取舍的账单</h2>
+        <p>
+          到这儿可以把话说完整：这不是一个「更先进」的架构，而是一笔<b>用工作量换自由度</b>的交易。
+          它开了三张账单，每一张都能在仓库里数出来。
+        </p>
+
+        <p>
+          <b>第一张：文档。同样的内容要写三份。</b>
+          <code>docs/</code> 下有 327 份中文对侧文档，配 327 份生成的一致性记录。
+          改一处，就要同步英文、中文、以及那份校验两边是否真的说了同一件事的 yaml。
+          这不是流程洁癖 —— 一个既要给内部看又要给外部看的仓库，双语一旦漂移，
+          最先坏掉的是「哪份是真的」这个判断本身。
+        </p>
+
+        <p>
+          <b>第二张：验证器。写下来但没人跑，等于没写。</b>
+          所以那些检查都接进了门禁：改名脚本有一个 <code>:check</code> 模式断言改完之后的状态，
+          跑在 hygiene gate 里；文档标准有一组测试校验发布记录的结构、双语一致性、证据标签，
+          以及「文档里写的已发布版本不高于工作区写入器」。
+        </p>
+
+        <p>
+          有意思的是这些验证器自己的局限，文档也写明了：那组无密钥检查<b>不查询 GitHub</b>，
+          所以它不能证明发布记录是最新的 —— 核实发布事实仍然是发布流程的一部分。
+          一个诚实的约束，比一个看起来很严的假约束有用。
+        </p>
+
+        <p>
+          <b>第三张：心智负担。六层 patch 叠出来的配置树，没人能靠读文件确认。</b>
+          第 06 章讲过 <code>--dump-config</code>，这里补上它的真实身份：它不是调试工具，
+          而是这套组装模型的<b>必要配套</b>。层数一多，「最终生效的是什么」就不再是可推断的，
+          只能靠打印。
+        </p>
+
+        <p>
+          还有一处取舍值得单独说：失败也要记，但只记值得记的。
+          <code>docs/postmortem/</code> 里只有 4 篇。门槛写得很清楚 ——
+          同时满足<b>隐蔽</b>（机制不明显，细心的工程师也要费力重推）、
+          <b>系统性</b>（逃逸原因是测试或约定的缺口，不是一次笔误）、
+          <b>重新发现的代价高</b>，才值得写一篇。其余靠测试兜住，不靠文档。
+        </p>
+
+        <p>
+          最后回到你自己身上。这七章读完，你手上其实有了一张判断表：
+        </p>
+
+        <ul>
+          <li>要加一个新工具 —— 写插件、注册 schema，别动循环。</li>
+          <li>要改行为的顺序 —— 找 <code>agent/*</code> 事件，别改 <code>agent-loop</code> 的实现。</li>
+          <li>要改「什么算事实」—— 停下来，先写确认记录，再看代码。</li>
+          <li>要改配置的默认值 —— 挑对层，然后 <code>--dump-config</code> 看一眼。</li>
+        </ul>
+
+        <p>
+          这四句话里，前三句之所以能这么短，是因为前面六章已经把边界划清楚了。
+          而第四句之所以必须带一句「看一眼」，正是这套设计收的最后一笔利息。
+        </p>
+
+        <section class="recap">
+          <span class="recap__k">这一节只要记住三行</span>
+          <ol>
+            <li>三张账单：327 组双语三件套、接进门禁的验证器、必须靠 <code>--dump-config</code> 才敢确认的配置树。</li>
+            <li>复盘只记「隐蔽 + 系统性 + 重发现成本高」的失败，4 篇；其余靠测试兜，不靠文档。</li>
+            <li>判断表：加工具写插件、改顺序找事件、改事实先写记录、改默认值先挑层。</li>
+          </ol>
+        </section>
+
+        <details class="check">
+          <summary><em>自测</em>你想让 dsh 在每次工具调用后额外记一条自定义事件，该走哪条路？</summary>
+          <p>
+            如果这条事件<b>只在本次运行里有意义</b>（比如给 UI 推个进度），走 <code>agent/*</code> 或
+            <code>tools/*</code> 事件，不需要版本号，也不需要确认记录 —— 它不进日志，明天没人读它。
+            如果它<b>必须写进日志、重启后还在</b>，那它就是持久化类型，要先写确认记录、生成 schema 快照，
+            再改代码。这一步不是仪式：判断标准只有一个，就是「明天还有没有另一个进程要读它」。
+          </p>
+        </details>
+
+        <nav class="pager" aria-label="章节导航">
+          <a class="pager__item" href="chapter-06.html">
+            <span class="pager__k">← 上一章</span>
+            <span class="pager__t">06 · 组装</span>
+          </a>
+          <a class="pager__item pager__next" href="index.html">
+            <span class="pager__k">读完 →</span>
+            <span class="pager__t">回目录 · 七章已完结</span>
+          </a>
+        </nav>
+      </article>
+
+      <aside class="toc" aria-label="本页目录">
+        <p class="eyebrow">本页</p>
+        <ul>
+          <li><a data-n="7.1" href="#s1" class="is-active">只有一个东西需要冻结</a></li>
+          <li><a data-n="7.2" href="#s2">其余的都允许碎掉</a></li>
+          <li><a data-n="7.3" href="#s3">接口只剩一句声明</a></li>
+          <li><a data-n="7.4" href="#s4">这套取舍的账单</a></li>
+        </ul>
+        <hr class="toc__rule" />
+        <p class="eyebrow">涉及模块</p>
+        <ul class="toc__modules">
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/core/session/src/types.ts"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 core/session/src/types.ts"
+              >session/types.ts</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/docs/upgrade-guide"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 docs/upgrade-guide"
+              >docs/upgrade-guide</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/docs/persistence-changes"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 docs/persistence-changes"
+              >persistence-changes</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/tree/master/docs/postmortem"
+              target="_blank"
+              rel="noreferrer noopener"
+              title="在 GitHub 打开 docs/postmortem"
+              >postmortem</a
+            >
+          </li>
+        </ul>
+        <p class="eyebrow" style="margin-top: 18px">快捷键</p>
+        <ul class="toc__keys">
+          <li><kbd>空格</kbd> 播放 / 暂停</li>
+          <li><kbd>拖动</kbd> 进度条来回看</li>
+        </ul>
+      </aside>
+    </div>
+
+    <nav class="jump" data-jump aria-label="节导航">
+      <a class="jump__b" data-jump-prev href="#s1">
+        <span class="jump__a" aria-hidden="true">↑</span>
+        <span class="jump__n" data-jump-prev-n></span>
+        <span class="jump__t" data-jump-prev-t></span>
+      </a>
+      <a class="jump__b" data-jump-next href="#s2">
+        <span class="jump__a" aria-hidden="true">↓</span>
+        <span class="jump__n" data-jump-next-n></span>
+        <span class="jump__t" data-jump-next-t></span>
+      </a>
+    </nav>
+
+    <script src="assets/site.js" defer></script>
+    <script src="assets/figures.js" defer></script>
+  </body>
+</html>

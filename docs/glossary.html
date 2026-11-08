@@ -253,7 +253,7 @@
 
       <section class="glo__group" data-glo-group>
         <header class="glo__gh">
-          <span class="glo__gl">04 / 插件与组装</span>
+          <span class="glo__gl">04 / 插件模型</span>
           <span class="glo__gl" data-glo-count>6 条</span>
         </header>
         <ul class="glo__list">
@@ -320,6 +320,50 @@
 
       <section class="glo__group" data-glo-group>
         <header class="glo__gh">
+          <span class="glo__gl">05 / 工具与执行</span>
+          <span class="glo__gl" data-glo-count>4 条</span>
+        </header>
+        <ul class="glo__list">
+          <li class="glo__item" id="schema" data-glo-item="schema 模式 参数表 形状 描述 tool schema">
+            <span class="glo__term">schema</span>
+            <span class="glo__desc"
+              ><b>模型的工具说明书：名字、说明、参数表。</b>定义里还有实现和输出形状，但都不发给模型。
+              可见的工具越多，每轮请求的固定 token 成本越高。</span
+            >
+            <span class="glo__src">05 · 工具系统</span>
+          </li>
+
+          <li class="glo__item" id="waterfall" data-glo-item="waterfall 瀑布 钩子 hook 中间件 拦截">
+            <span class="glo__term">waterfall / 瀑布</span>
+            <span class="glo__desc"
+              ><b>一层层往下传的钩子。</b>每层可以放行（交给下一层），也可以直接改判。
+              执行前后各一条：<code>tools/pre-execute</code> 与 <code>tools/post-execute</code>。</span
+            >
+            <span class="glo__src">05 · 工具系统</span>
+          </li>
+
+          <li class="glo__item" id="guard" data-glo-item="guard 守卫 策略 单调 拒绝 安全">
+            <span class="glo__term">guard / 守卫</span>
+            <span class="glo__desc"
+              ><b>只能拒、不能翻案的安全策略。</b>它排在审批瀑布之后，返回理由就拒绝，
+              后面的监听器没法把它改回允许 —— 审批可以商量，边界不行。</span
+            >
+            <span class="glo__src">05 · 工具系统</span>
+          </li>
+
+          <li class="glo__item" id="barrier" data-glo-item="barrier 屏障 独占 exclusive 并发 并行 parallel">
+            <span class="glo__term">屏障 / barrier</span>
+            <span class="glo__desc"
+              ><b>独占调用画出的一条界。</b>它前面所有调用必须结算完它才开始，它没结束后面谁也进不来。
+              并行调用则只是共享一个有上限的池子，可以重叠。</span
+            >
+            <span class="glo__src">05 · 工具系统</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="glo__group" data-glo-group>
+        <header class="glo__gh">
           <span class="glo__gl">06 / 组装</span>
           <span class="glo__gl" data-glo-count>4 条</span>
         </header>
@@ -364,44 +408,63 @@
 
       <section class="glo__group" data-glo-group>
         <header class="glo__gh">
-          <span class="glo__gl">05 / 工具与执行</span>
-          <span class="glo__gl" data-glo-count>4 条</span>
+          <span class="glo__gl">07 / 取舍与记录</span>
+          <span class="glo__gl" data-glo-count>6 条</span>
         </header>
         <ul class="glo__list">
-          <li class="glo__item" id="schema" data-glo-item="schema 模式 参数表 形状 描述 tool schema">
-            <span class="glo__term">schema</span>
+          <li class="glo__item" id="format-version" data-glo-item="format version 格式 版本 SESSION_FORMAT_VERSION 写入器">
+            <span class="glo__term">format version / 格式版本</span>
             <span class="glo__desc"
-              ><b>模型的工具说明书：名字、说明、参数表。</b>定义里还有实现和输出形状，但都不发给模型。
-              可见的工具越多，每轮请求的固定 token 成本越高。</span
+              ><b>仓库里唯一手工维护的版本号。</b>它只描述写入器产出的日志格式，现在是
+              <code>4</code>。包版本、codec 导出名、fixture 文件名都不能拿来推断它。</span
             >
-            <span class="glo__src">05 · 工具系统</span>
+            <span class="glo__src">07 · 设计取舍</span>
           </li>
 
-          <li class="glo__item" id="waterfall" data-glo-item="waterfall 瀑布 钩子 hook 中间件 拦截">
-            <span class="glo__term">waterfall / 瀑布</span>
+          <li class="glo__item" id="persistence-change" data-glo-item="persistence change 确认记录 日志 schema 变更 兼容">
+            <span class="glo__term">persistence change / 确认记录</span>
             <span class="glo__desc"
-              ><b>一层层往下传的钩子。</b>每层可以放行（交给下一层），也可以直接改判。
-              执行前后各一条：<code>tools/pre-execute</code> 与 <code>tools/post-execute</code>。</span
+              ><b>改日志结构之前必须先写的一份记录。</b>绑定精确的 schema 快照、前驱记录和兼容性判断，
+              机器可校验 —— 缺前驱、成环、摘要不匹配都会被拒。</span
             >
-            <span class="glo__src">05 · 工具系统</span>
+            <span class="glo__src">07 · 设计取舍</span>
           </li>
 
-          <li class="glo__item" id="guard" data-glo-item="guard 守卫 策略 单调 拒绝 安全">
-            <span class="glo__term">guard / 守卫</span>
+          <li class="glo__item" id="checkpoint" data-glo-item="checkpoint 检查点 finalized 定稿 基线 冻结 不可变">
+            <span class="glo__term">checkpoint / 检查点</span>
             <span class="glo__desc"
-              ><b>只能拒、不能翻案的安全策略。</b>它排在审批瀑布之后，返回理由就拒绝，
-              后面的监听器没法把它改回允许 —— 审批可以商量，边界不行。</span
+              ><b>把某一代日志格式钉死的快照。</b>现在的 <code>finalized/v4.json</code>
+              保证已接受的记录和 schema 不再被改动，后来的记录只能往上接。</span
             >
-            <span class="glo__src">05 · 工具系统</span>
+            <span class="glo__src">07 · 设计取舍</span>
           </li>
 
-          <li class="glo__item" id="barrier" data-glo-item="barrier 屏障 独占 exclusive 并发 并行 parallel">
-            <span class="glo__term">屏障 / barrier</span>
+          <li class="glo__item" id="upgrade-guide" data-glo-item="upgrade guide 升级指南 迁移 破坏 变更 breaking">
+            <span class="glo__term">upgrade guide / 升级指南</span>
             <span class="glo__desc"
-              ><b>独占调用画出的一条界。</b>它前面所有调用必须结算完它才开始，它没结束后面谁也进不来。
-              并行调用则只是共享一个有上限的池子，可以重叠。</span
+              ><b>按版本写的迁移说明。</b>12 个版本、119 条，每条说清变了什么、怎么改、失败长什么样。
+              它给人读，不参与自动校验 —— 和确认记录正好相反。</span
             >
-            <span class="glo__src">05 · 工具系统</span>
+            <span class="glo__src">07 · 设计取舍</span>
+          </li>
+
+          <li class="glo__item" id="postmortem" data-glo-item="postmortem 复盘 事故 失败 教训">
+            <span class="glo__term">postmortem / 事故复盘</span>
+            <span class="glo__desc"
+              ><b>只记「本该被拦住却漏了」的失败。</b>门槛三条：隐蔽、系统性、重新发现的代价高。
+              现在 4 篇；其余错误交给测试，不交给文档。</span
+            >
+            <span class="glo__src">07 · 设计取舍</span>
+          </li>
+
+          <li class="glo__item" id="vendored" data-glo-item="vendored 源码内置 依赖 fork cordis peer">
+            <span class="glo__term">vendored / 源码内置</span>
+            <span class="glo__desc"
+              ><b>把依赖的源码直接放进仓库。</b>cordis 那九个包以
+              <code>@deepseek-ai</code> scope 发布，随 harness 一起发版 ——
+              所以框架本身也能改，不用等上游。</span
+            >
+            <span class="glo__src">07 · 设计取舍</span>
           </li>
         </ul>
       </section>

@@ -1709,6 +1709,276 @@
   }
 
   /* ==========================================================================
+     图 8 —— 稳定性预算只花在一处
+     形态：左边四个虚线框（进程内的结构，会换代、会挪位），中间一道竖墙，
+     右边一列实线记录（写进磁盘的日志，只追加）。
+     讲的是分界：内部 API 允许随时碎，穿过这条线的记录必须永远读得回来。
+     ========================================================================== */
+
+  /* 几何：左区 20…196、墙 230、右区 262…540。
+     两边的宽度差是故意的 —— 这张图想说的东西在右半边。 */
+
+  var FZ = {
+    bw: 84,
+    bh: 34,
+    recY: [64, 86, 108, 130, 152],
+    /* 三个代次的坐标。左右两列的 x 只能在小范围内动 —— 一旦越过
+       104/112 那条缝，两个框就会叠在一起。所以「重排」靠 y 的重排来
+       表达：18px 上下的错位，看得出这一版布局不一样了。 */
+    gen: [
+      [
+        [20, 64],
+        [112, 64],
+        [20, 108],
+        [112, 108]
+      ],
+      [
+        [20, 56],
+        [112, 74],
+        [20, 102],
+        [112, 120]
+      ],
+      [
+        [20, 74],
+        [112, 56],
+        [28, 116],
+        [112, 126]
+      ]
+    ],
+    parts: [
+      { n: "agent-loop", d: "turn · step" },
+      { n: "tool-executor", d: "schema → 调用" },
+      { n: "plugin", d: "注册 · 注销" },
+      { n: "system-prompt", d: "每步重拼" }
+    ],
+    recs: [
+      "user/message",
+      "assistant/message",
+      "tool/call",
+      "tool/result",
+      "step/end"
+    ],
+    /* 每条事件从哪个部件冒出来。plugin 不在此列 —— 插件自己从不写持久事实 */
+    go: [3, 0, 1, 1, 0],
+    at: [0.5, 0.72, 0.78, 0.84, 0.88],
+    fly: 0.1,
+    text: [
+      "<b>这条线划开了两样东西。</b>左边是进程内的结构 —— 循环、执行器、插件、提示词；右边是写进磁盘的 session 日志。整份设计里最贵的一笔预算，就花在穿越这条线的动作上。",
+      "<b>① 左边的四个虚线框。</b>虚线是因为它们不稳定：可以被替换、被重排、被改名。它们没有版本号，也没有兼容承诺 —— 下一版可能就不叫这个名字了。",
+      "<b>② 一次普通的重构。</b>四个部件的位置全挪了，代号也从 gen 1 变成 gen 2。这不需要任何兼容试验，因为内部 API 从来没有对外承诺过形状。",
+      "<b>③ 但事件必须穿过这条线。</b>调用发生的那一刻，它被压成固定形状的记录，落到右边第一条槽里。穿过去之后它不再是内存里的对象，而是一行要永远读得懂的字。",
+      "<b>④ 后面的每条都一样。</b>记录只有两种命运：追加，或者不写。已经落下的那条不会被回头修改 —— 这是回放、崩溃恢复、fork 全部成立的前提。",
+      "<b>⑤ 左边又换了一版，右边一条都没动。</b>只是多了新的。V1 到 V4 的全部内容，就是这条带子在变长；而那四个方块的代号，从来没进过这张表。"
+    ]
+  };
+
+  function buildFreeze(root) {
+    var s = [];
+    var i;
+
+    s.push(
+      '<svg viewBox="0 0 560 214" role="img" aria-label="左边是可随时替换的内存结构，中间一道写盘边界，右边是只追加、永久可读的 session 日志">'
+    );
+
+    s.push('<text class="d-fz__k" x="20" y="22">IN MEMORY</text>');
+    s.push('<text class="d-fz__s" x="20" y="38">进程内 · 随时可换</text>');
+    s.push(
+      '<text class="d-fz__gen" data-gen x="196" y="38" text-anchor="end">gen 1</text>'
+    );
+
+    s.push('<text class="d-fz__k" x="262" y="22">SESSION LOG</text>');
+    s.push('<text class="d-fz__s" x="262" y="38">磁盘上 · 只追加</text>');
+    s.push(
+      '<text class="d-fz__ver" data-ver x="540" y="38" text-anchor="end">format v4</text>'
+    );
+
+    s.push('<text class="d-fz__w" x="230" y="38" text-anchor="middle">WRITE</text>');
+    s.push('<line class="d-fz__wall" x1="230" y1="50" x2="230" y2="176"/>');
+
+    /* 左区：四个虚线框。整组用 transform 定位，形变时只改这个值 */
+    for (i = 0; i < 4; i++) {
+      s.push('<g data-p' + i + ' opacity="0">');
+      s.push(
+        '<rect class="d-fz__box" data-pb' +
+          i +
+          ' x="0" y="0" width="84" height="34" rx="2"/>'
+      );
+      s.push('<text class="d-fz__n" x="7" y="15">' + FZ.parts[i].n + "</text>");
+      s.push('<text class="d-fz__d" x="7" y="27">' + FZ.parts[i].d + "</text>");
+      s.push("</g>");
+    }
+
+    /* 信使：飞行时是信号色小块，落地后原地伸成记录条。
+       它先画、文字后画 —— 否则展开的记录条会盖住自己的 seq。 */
+    for (i = 0; i < 5; i++) {
+      s.push(
+        '<rect class="d-fz__mg" data-mg' +
+          i +
+          ' x="0" y="0" width="14" height="9" rx="1" opacity="0"/>'
+      );
+    }
+
+    for (i = 0; i < 5; i++) {
+      s.push('<g data-r' + i + ' opacity="0">');
+      s.push(
+        '<text class="d-fz__sq" x="278" y="' +
+          (FZ.recY[i] + 12) +
+          '" text-anchor="end">' +
+          i +
+          "</text>"
+      );
+      s.push(
+        '<text class="d-fz__e" x="290" y="' +
+          (FZ.recY[i] + 12) +
+          '">' +
+          FZ.recs[i] +
+          "</text>"
+      );
+      s.push("</g>");
+    }
+
+    s.push(
+      '<text class="d-fz__note" data-n1 x="20" y="196" opacity="0">代号一直在换，这张表没有</text>'
+    );
+    s.push(
+      '<text class="d-fz__note" data-n2 x="262" y="196" opacity="0">已经落下的，不再回头改</text>'
+    );
+
+    s.push("</svg>");
+
+    var host = document.createElement("div");
+    host.innerHTML = s.join("");
+    var svg = host.firstChild;
+    root.appendChild(svg);
+
+    var parts = [];
+    var rects = [];
+    var rows = [];
+    var mugs = [];
+    for (i = 0; i < 4; i++) {
+      parts.push(svg.querySelector("[data-p" + i + "]"));
+      rects.push(svg.querySelector("[data-pb" + i + "]"));
+    }
+    for (i = 0; i < 5; i++) {
+      rows.push(svg.querySelector("[data-r" + i + "]"));
+      mugs.push(svg.querySelector("[data-mg" + i + "]"));
+    }
+    var genEl = svg.querySelector("[data-gen]");
+    var verEl = svg.querySelector("[data-ver]");
+    var n1 = svg.querySelector("[data-n1]");
+    var n2 = svg.querySelector("[data-n2]");
+    var lastGen = -1;
+
+    function paint(t) {
+      var i;
+
+      /* 两次换代：gen1→2 在「重构」相位，gen2→3 在收尾相位。
+         两条曲线都走完之后位置才算定下来。 */
+      var g12 = easeInOut(clamp((t - 0.34) / 0.06, 0, 1));
+      var g23 = easeInOut(clamp((t - 0.88) / 0.06, 0, 1));
+      var churn = (g12 > 0 && g12 < 1) || (g23 > 0 && g23 < 1);
+
+      var pos = [];
+      for (i = 0; i < 4; i++) {
+        var p1 = FZ.gen[0][i];
+        var p2 = FZ.gen[1][i];
+        var p3 = FZ.gen[2][i];
+        var x = lerp(lerp(p1[0], p2[0], g12), p3[0], g23);
+        var y = lerp(lerp(p1[1], p2[1], g12), p3[1], g23);
+        pos.push([x, y]);
+        parts[i].setAttribute(
+          "transform",
+          "translate(" + x.toFixed(1) + "," + y.toFixed(1) + ")"
+        );
+        parts[i].setAttribute(
+          "opacity",
+          clamp((t - (0.18 + i * 0.014)) / 0.05, 0, 1).toFixed(2)
+        );
+        /* 换代的那一小段时间里边框转实线：读者需要看见「变了」发生在哪一下 */
+        rects[i].setAttribute("class", "d-fz__box" + (churn ? " is-churn" : ""));
+      }
+
+      /* 代号必须和「开始动」同帧切换：读白在 0.34 就说「代号变成 gen 2」，
+         画面若还挂着 gen 1，就成了读白领先屏幕 —— 那是最容易让人怀疑坏掉的一类错误 */
+      var gi = t < 0.35 ? 1 : t < 0.885 ? 2 : 3;
+      if (gi !== lastGen) {
+        genEl.textContent = "gen " + gi;
+        lastGen = gi;
+      }
+
+      for (i = 0; i < 5; i++) {
+        var p = clamp((t - FZ.at[i]) / FZ.fly, 0, 1);
+        if (p <= 0) {
+          mugs[i].setAttribute("opacity", "0");
+          rows[i].setAttribute("opacity", "0");
+          continue;
+        }
+
+        /* 起点是源部件此刻的中心 —— 部件正在挪位时也得跟得上 */
+        var sp = pos[FZ.go[i]];
+        var sx = sp[0] + FZ.bw / 2;
+        var sy = sp[1] + FZ.bh / 2;
+
+        /* 前 55% 只是平移（小块穿过墙），后 45% 才展开成记录条。
+           展开与位移分开，才不会看起来像被拉长的一段橡皮。 */
+        var ex = clamp((p - 0.55) / 0.45, 0, 1);
+        var w = p < 0.55 ? 14 : lerp(14, 278, easeOut(ex));
+        var h = p < 0.55 ? 9 : lerp(9, 17, easeOut(ex));
+        var cx = lerp(sx, 401, easeInOut(p));
+        var cy = lerp(sy, FZ.recY[i] + 8.5, easeInOut(p));
+
+        mugs[i].setAttribute("x", (cx - w / 2).toFixed(1));
+        mugs[i].setAttribute("y", (cy - h / 2).toFixed(1));
+        mugs[i].setAttribute("width", w.toFixed(1));
+        mugs[i].setAttribute("height", h.toFixed(1));
+        mugs[i].setAttribute("opacity", "1");
+        /* 落地后换成记录条的白底；刚落地那一下留一点信号色。
+           窗口必须在下一条落地时立刻结束 —— 否则同时两三条都是绿的，
+           「最新一条」这个信息就没了。 */
+        var home = p > 0.72;
+        var until = i < 4 ? Math.min(FZ.at[i] + FZ.fly + 0.06, FZ.at[i + 1] + FZ.fly) : FZ.at[i] + FZ.fly + 0.08;
+        var fresh = p >= 1 && t < until;
+        mugs[i].setAttribute(
+          "class",
+          "d-fz__mg" + (home ? " is-home" : "") + (fresh ? " is-fresh" : "")
+        );
+
+        /* 文字要等形状基本展开之后再出现，否则 seq 会飘在拉长的块中间 */
+        rows[i].setAttribute(
+          "opacity",
+          clamp((p - 0.68) / 0.14, 0, 1).toFixed(2)
+        );
+      }
+
+      verEl.setAttribute("class", "d-fz__ver" + (t > 0.9 ? " is-on" : ""));
+
+      var np = clamp((t - 0.9) / 0.05, 0, 1).toFixed(2);
+      n1.setAttribute("opacity", np);
+      n2.setAttribute("opacity", np);
+
+      if (t < 0.18) return 0;
+      if (t < 0.34) return 1;
+      if (t < 0.5) return 2;
+      if (t < 0.72) return 3;
+      if (t < 0.88) return 4;
+      return 5;
+    }
+
+    return {
+      paint: paint,
+      phases: 6,
+      text: function (i) {
+        return FZ.text[clamp(i, 0, 5)];
+      },
+      jump: function (k) {
+        return clamp((clamp(k, 0, 5) + 0.5) / 6, 0, 1);
+      },
+      stepMarks: [0.18, 0.34, 0.5, 0.72, 0.88],
+      marks: []
+    };
+  }
+
+  /* ==========================================================================
      播放器
      ========================================================================== */
 
@@ -1924,7 +2194,7 @@
 
   /* ---------- 启动 ---------- */
 
-  var DUR = { step: 11000, turn: 15000, boundary: 12000, log: 14000, seam: 12000, batch: 13000, layer: 12000 };
+  var DUR = { step: 11000, turn: 15000, boundary: 12000, log: 14000, seam: 12000, batch: 13000, layer: 12000, freeze: 13000 };
 
   document.addEventListener("DOMContentLoaded", function () {
     Array.prototype.forEach.call(
@@ -1946,6 +2216,8 @@
             ? buildBatch
             : kind === "layer"
             ? buildLayer
+            : kind === "freeze"
+            ? buildFreeze
             : null;
         if (builder) Player(root, builder, { duration: DUR[kind] });
       }
