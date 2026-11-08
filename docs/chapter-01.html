@@ -42,6 +42,8 @@
         </a>
         <nav class="topnav" aria-label="站点导航">
           <a href="index.html">目录</a>
+          <a href="overview.html">全景</a>
+          <a href="start.html">上手</a>
           <a class="is-optional" href="glossary.html">术语表</a>
           <a class="is-optional" href="styleguide.html">规范</a>
           <a class="is-optional" href="https://github.com/lzwanan/deepseek-harness-guide" target="_blank" rel="noreferrer noopener">本仓库</a>
@@ -293,13 +295,18 @@
           读懂它的关键，是搞清楚「谁在什么时候调用了谁」，而不是背下某个类的字段。
         </p>
 
-        <p class="eyebrow code__cap">后面六章的位置</p>
-        <pre class="code"><code>02  turn 与 step      一次对话怎么被切成回合和步      <b>已上线</b>
-03  Session 日志      只追加的事件流，一切的真相来源
-04  插件模型          ctx、注册、dispose
-05  能力缝            接口 / 实现 / 消费者三件套
-06  组装              从空工程到能跑的最小 dsh
-07  设计取舍          为什么它必须允许破坏性变更</code></pre>
+        <p>
+          后面六章各拆一个零件，顺序是从外到内：<b>02</b> 讲一轮对话怎么被切开，
+          <b>03</b> 讲事实写在哪，<b>04</b> 讲插件之间靠什么认识彼此，
+          <b>05</b> 讲工具从定义到执行要过几道手，<b>06</b> 讲这棵树怎么被搭起来，
+          <b>07</b> 讲哪些东西被冻结、哪些允许碎。
+        </p>
+
+        <p>
+          不想按顺序读也可以：先看 <a href="overview.html">全景</a>，
+          一页画出五层骨架和一次请求的八步；或者直接
+          <a href="start.html">上手</a>，二十分钟跑通第一个插件。
+        </p>
 
         <section class="recap">
           <span class="recap__k">这一节只要记住三行</span>

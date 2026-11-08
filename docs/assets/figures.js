@@ -1878,6 +1878,16 @@
       var g23 = easeInOut(clamp((t - 0.88) / 0.06, 0, 1));
       var churn = (g12 > 0 && g12 < 1) || (g23 > 0 && g23 < 1);
 
+      /* 换代时不只要挪位，还要「拆一下再装回去」：四个框先各自向外弹开 7px，
+         再落到新位置。纯平移的幅度放在 84×34 的框上太像手抖 —— 有了这一下
+         弹开，读者才看得出是「换了一版」，而不是「没对准」。
+         弹开量走 sin(π·g)，所以起止都归零，不会留下错位。 */
+      var burst =
+        Math.sin(Math.PI * g12) * (g12 > 0 && g12 < 1 ? 1 : 0) +
+        Math.sin(Math.PI * g23) * (g23 > 0 && g23 < 1 ? 1 : 0);
+      /* 同一瞬间让框内文字淡下去再回来：旧内容被丢掉、新内容写进去的感觉 */
+      var fade = 1 - 0.32 * burst;
+
       var pos = [];
       for (i = 0; i < 4; i++) {
         var p1 = FZ.gen[0][i];
@@ -1885,6 +1895,7 @@
         var p3 = FZ.gen[2][i];
         var x = lerp(lerp(p1[0], p2[0], g12), p3[0], g23);
         var y = lerp(lerp(p1[1], p2[1], g12), p3[1], g23);
+        y += burst * (i < 2 ? -9 : 9);
         pos.push([x, y]);
         parts[i].setAttribute(
           "transform",
@@ -1892,7 +1903,9 @@
         );
         parts[i].setAttribute(
           "opacity",
-          clamp((t - (0.18 + i * 0.014)) / 0.05, 0, 1).toFixed(2)
+          (
+            clamp((t - (0.18 + i * 0.014)) / 0.05, 0, 1) * fade
+          ).toFixed(2)
         );
         /* 换代的那一小段时间里边框转实线：读者需要看见「变了」发生在哪一下 */
         rects[i].setAttribute("class", "d-fz__box" + (churn ? " is-churn" : ""));

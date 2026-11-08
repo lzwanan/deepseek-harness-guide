@@ -20,6 +20,15 @@
 | 06 | 组装 | 4 | 已上线 |
 | 07 | 设计取舍 | 4 | 已上线 |
 
+除七章正文外，还有两个入口页，分工是固定的：
+
+| 页 | 回答什么 | 什么时候看 |
+| --- | --- | --- |
+| [`overview.html`](https://lzwanan.github.io/deepseek-harness-guide/overview.html) | 它为什么长这样、骨架分几层、一次请求怎么走完 | 读任何一章之前，先建立系统观 |
+| [`start.html`](https://lzwanan.github.io/deepseek-harness-guide/start.html) | 怎么跑起来、怎么加第一个插件与工具 | 想动手，或者读完之后不知道从哪改 |
+
+**全景讲为什么，章讲是什么，上手讲怎么动。** 三页之间只单向指路。
+
 ## 这不是什么
 
 - 不是 DeepSeek 官方文档，与 DeepSeek 无关联。

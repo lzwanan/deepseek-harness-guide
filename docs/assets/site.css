@@ -597,12 +597,21 @@ a.row--live .row__n {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 18px;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-5);
+  margin-top: 20px;
+  /* 这行是中文引导，不是仪器读数 —— 用等宽大写会把句子拉散，
+     也让「全景 / 上手」两个入口看起来像注释而不是可点的东西 */
+  font-family: var(--sans);
+  font-size: 12.5px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-4);
+}
+.index__flag a {
+  color: var(--signal);
+  border-bottom: 1px solid var(--signal-line);
+}
+.index__flag a:hover {
+  border-bottom-color: var(--signal);
 }
 
 .index__flag i {
@@ -3828,6 +3837,374 @@ a.row--live .row__n {
   font-family: var(--sans);
   font-size: 7.5px;
   fill: var(--panel-ink-3);
+}
+
+/* 正文里的行内链接。只认没有 class 的 a —— pager、CTA、目录行都有自己的
+   配色，别让一条「正文链接变青」的规则把它们一起改掉。 */
+.doc a:not([class]) {
+  color: var(--signal);
+  border-bottom: 1px solid var(--signal-line);
+}
+
+.doc a:not([class]):hover {
+  border-bottom-color: var(--signal);
+}
+
+/* ---------- 全景 / 上手（overview & start） ---------- */
+
+/* 左栏的「阅读路径」不是章节列表，是三种人各自的入口。
+   所以每条自带一句「你现在要什么」，链接横排在最下面一行 ——
+   比一张 7 行的章节目录更能回答「我该从哪开始」。 */
+
+.paths {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.paths li {
+  padding: 13px 0;
+  border-top: 1px solid var(--rule);
+}
+
+.paths li:first-child {
+  border-top: 0;
+  padding-top: 4px;
+}
+
+.paths__k {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.paths__d {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--ink-4);
+}
+
+.paths__l {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 7px;
+}
+
+.paths__l a {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--signal);
+}
+
+/* 前置警告。用左侧一道信号色细线，不用整块底色 ——
+   这一页要读得下去，警告不能抢正文。 */
+
+.warn {
+  margin: 26px 0 0;
+  padding: 13px 16px;
+  border-left: 2px solid var(--signal-line);
+  background: var(--signal-soft);
+  font-size: 13.5px;
+  line-height: 1.78;
+  color: var(--ink-3);
+}
+
+.warn b {
+  color: var(--ink);
+}
+
+.warn i {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+.ov-table {
+  margin: 26px 0 0;
+}
+
+/* 骨架图：虚线 = 可替换的层，实线 = 骨架。
+   和第 07 章那张图共用同一条语义，不另发明一套。 */
+
+.d-ov__band {
+  fill: var(--panel-fill);
+  stroke: var(--panel-edge);
+  stroke-dasharray: 4 3;
+}
+
+.d-ov__band.is-core {
+  fill: var(--signal-wash);
+  stroke: var(--signal-line);
+  stroke-dasharray: none;
+}
+
+.d-ov__box {
+  fill: var(--panel-card);
+  stroke: var(--panel-edge);
+}
+
+/* 内核里那格空位：用虚线 + 无填充，表示「这里没有东西」，而不是「还有一个模块」 */
+.d-ov__box.is-void {
+  fill: none;
+  stroke: var(--panel-ink-4);
+  stroke-dasharray: 3 2;
+}
+
+.d-ov__v2 {
+  font-family: var(--sans);
+  font-size: 8px;
+  fill: var(--panel-ink-3);
+}
+
+.d-ov__k {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  fill: var(--panel-ink-2);
+}
+
+.d-ov__s {
+  font-family: var(--sans);
+  font-size: 7.5px;
+  fill: var(--panel-ink-4);
+}
+
+.d-ov__v {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  fill: var(--panel-ink-2);
+}
+
+.d-ov__n {
+  font-family: var(--sans);
+  font-size: 7.5px;
+  fill: var(--panel-ink-4);
+}
+
+.d-ov__b {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  fill: var(--panel-ink);
+}
+
+.d-ov__d {
+  font-family: var(--sans);
+  font-size: 7.5px;
+  fill: var(--panel-ink-3);
+}
+
+.d-ov__bus {
+  fill: none;
+  stroke: var(--panel-axis);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.d-ov__busl {
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: 0.06em;
+  fill: var(--panel-ink-4);
+}
+
+/* 骨架图没有播放器，所以观测窗不需要控件行；
+   读白直接接在图形下面，不许出现 68px 的空白。 */
+
+.ov-fig .readout {
+  border-top: 1px solid var(--panel-line);
+  font-size: 12.5px;
+}
+
+.ov-readout b {
+  color: var(--signal);
+  font-weight: 600;
+}
+
+/* 八步流程：编号 + 标题 + 说明 + 去哪读。
+   编号用信号色而不是灰色 —— 它同时是「顺序」和「可跳转」的记号。 */
+
+.tr {
+  list-style: none;
+  margin: 26px 0 0;
+  padding: 0;
+}
+
+.tr__row {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 56px;
+  gap: 0 14px;
+  padding: 14px 0;
+  border-top: 1px solid var(--rule);
+  align-items: start;
+}
+
+.tr__row:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+
+.tr__i {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--signal);
+  padding-top: 4px;
+}
+
+.tr__h {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+}
+
+.tr__d {
+  display: block;
+  margin-top: 5px;
+  font-size: 13.5px;
+  line-height: 1.74;
+  color: var(--ink-3);
+}
+
+.tr__d code {
+  padding: 1px 4px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--bg-2);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.tr__go {
+  padding-top: 5px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-align: right;
+  /* ink-4 在这张表里几乎看不见了 —— 这一列是「下一步去哪」，
+     不是页脚注释，得先能看见 */
+  color: var(--ink-3);
+  text-decoration: none;
+  transition: color 0.2s var(--ease);
+}
+
+.tr__go:hover,
+.tr__go:focus-visible {
+  color: var(--signal);
+}
+
+/* 三列说明块。用上边框而不是卡片：一列一个框会让这一页变成产品落地页。 */
+
+.ov-paths {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 24px;
+  margin-top: 26px;
+}
+
+.ov-path {
+  padding-top: 12px;
+  border-top: 1px solid var(--ink-2);
+}
+
+.ov-path__k {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--signal);
+}
+
+.ov-path p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.74;
+  color: var(--ink-3);
+}
+
+.ov-path p a {
+  color: var(--signal);
+}
+
+/* 页尾两个出口。整页只有这里用框，因为这里确实是两个「选择」。 */
+
+.ov-cta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 60px;
+  padding-top: 24px;
+  border-top: 1px solid var(--rule);
+}
+
+.ov-cta__a {
+  display: block;
+  padding: 14px 16px;
+  border: 1px solid var(--hair);
+  border-radius: 2px;
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+}
+
+.ov-cta__a:hover,
+.ov-cta__a:focus-visible {
+  border-color: var(--signal-line);
+  background: var(--signal-soft);
+}
+
+.ov-cta__k {
+  display: block;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+
+.ov-cta__t {
+  display: block;
+  margin-top: 5px;
+  font-size: 14.5px;
+  color: var(--ink);
+}
+
+@media (max-width: 900px) {
+  .ov-paths {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .tr__row {
+    grid-template-columns: 30px minmax(0, 1fr);
+  }
+  .tr__go {
+    grid-column: 2;
+    text-align: left;
+    padding-top: 6px;
+  }
+  .ov-cta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* 窄屏里 side 会落到正文上面。三条路径竖排要占掉三百多像素，
+     两列能少三分之一，读者更快看到标题。 */
+  .paths {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 18px;
+  }
+  .paths li {
+    padding: 10px 0;
+  }
+  /* 表格在 620 的行宽里是舒服的，但窄屏会整块竖切。允许压到 520 ——
+     再窄就真的读不了，那时候横滑是对的。 */
+  .ov-table .sg-table {
+    min-width: 520px;
+  }
 }
 
 /* ---------- 动效降级 ---------- */

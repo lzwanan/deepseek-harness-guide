@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>全景 — DeepSeek Harness 导读</title>
+    <meta
+      name="description"
+      content="五层骨架、一次请求走过的八步、三种读法。读完这一页，你会知道 dsh 为什么长成现在这样。"
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+    <script>
+      (function () {
+        try {
+          var m = localStorage.getItem("dsh-theme") || "auto";
+          var dark =
+            m === "dark" ||
+            (m === "auto" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          document.documentElement.dataset.mode = m;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body data-page="overview.html">
+    <div
+      class="progress"
+      data-progress
+      role="progressbar"
+      aria-label="阅读进度"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    ></div>
+
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="brand" href="index.html">
+          <span class="brand__mark" aria-hidden="true"></span>
+          DeepSeek Harness 导读
+        </a>
+        <nav class="topnav" aria-label="站点导航">
+          <a href="index.html">目录</a>
+          <a href="overview.html" aria-current="page">全景</a>
+          <a href="start.html">上手</a>
+          <a class="is-optional" href="glossary.html">术语表</a>
+          <a class="is-optional" href="styleguide.html">规范</a>
+          <a
+            class="is-optional"
+            href="https://github.com/lzwanan/deepseek-harness-guide"
+            target="_blank"
+            rel="noreferrer noopener"
+            >本仓库</a
+          >
+          <a
+            class="is-optional"
+            href="https://github.com/deepseek-ai/deepseek-harness"
+            target="_blank"
+            rel="noreferrer noopener"
+            >上游源码</a
+          >
+          <button class="theme-toggle" type="button" data-theme-toggle>自动</button>
+        </nav>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="side" aria-label="阅读路径">
+        <div class="side__group">
+          <p class="eyebrow">三条读法</p>
+          <ul class="paths">
+            <li>
+              <span class="paths__k">产品 / 决策</span>
+              <span class="paths__d">它为什么必须拆成这样</span>
+              <span class="paths__l">
+                <a href="#s1">这一页</a>
+                <a href="chapter-07.html">07 取舍</a>
+              </span>
+            </li>
+            <li>
+              <span class="paths__k">架构 / 连接</span>
+              <span class="paths__d">零件怎么拼起来</span>
+              <span class="paths__l">
+                <a href="#s2">骨架</a>
+                <a href="#s3">八步</a>
+                <a href="chapter-04.html">04 插件</a>
+                <a href="chapter-06.html">06 组装</a>
+              </span>
+            </li>
+            <li>
+              <span class="paths__k">研发 / 动手</span>
+              <span class="paths__d">改哪里、怎么加</span>
+              <span class="paths__l">
+                <a href="start.html">上手</a>
+                <a href="chapter-02.html">02</a>
+                <a href="chapter-05.html">05</a>
+                <a href="chapter-03.html">03</a>
+              </span>
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+      <article class="doc">
+        <p class="eyebrow">全景 / overview</p>
+        <h1 id="s1">不是一个 Agent 程序，是插件运行时</h1>
+        <p class="lede">
+          这一页不讲细节，只回答三个问题：dsh 为什么长成这样、它的骨架分几层、一次请求怎么走完。
+          读完再去读任何一章，你都知道那一段在整张图的哪个位置。
+        </p>
+
+        <p>
+          官方对自己只有一句话：<b>Everything is a Plugin</b>。很多人把它读成「模块化做得不错」，
+          其实它是一个应急决定 —— 这套东西要对付的三样东西<b>一直在变，而且变得比彼此快</b>。
+        </p>
+
+        <div class="sg-wrap ov-table">
+          <table class="sg-table">
+            <colgroup>
+              <col style="width: 96px" />
+              <col style="width: 210px" />
+              <col />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>在变的东西</th>
+                <th>变化的样子</th>
+                <th>如果写死在主干里</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>模型</td>
+                <td>换厂商、换上下文长度、换推理档位</td>
+                <td>换一次模型就要改循环</td>
+              </tr>
+              <tr>
+                <td>工具</td>
+                <td>读写文件、跑命令、搜索、子代理、LSP…每周都在加</td>
+                <td>每加一个能力都要动核心</td>
+              </tr>
+              <tr>
+                <td>形态</td>
+                <td>Web UI、无头批处理、SDK、桌面、编辑器协议</td>
+                <td>五种外壳各写一套内核</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          所以它的答案不是「写一个更好的 agent」，而是<b>只写运行时，把其余全部做成插件</b>：
+          循环、工具表、日志、提示词装配、模型适配器 —— 连「用哪个模型」都是运行时查出来的。
+          仓库里四百多个包，几乎每一个都可以从配置里换掉。
+        </p>
+
+        <p>
+          这一刻的代价要记住：<b>你几乎不会「改一个文件就让功能变了」</b>。
+          但它换回来的是「不动核心就能换掉文件系统、换掉模型、插一个拦截器」。
+          后面七章讲的每一件事，都是这句话的展开。
+        </p>
+
+        <h2 id="s2">骨架：五层，一条总线</h2>
+        <p>
+          从上往下看：最上面是你选的那种形态，最下面是它真正碰得到的世界。中间三层是 dsh 自己。
+        </p>
+
+        <figure class="scope ov-fig">
+          <div class="scope__bar">
+            <span class="scope__id">FIG.00</span>
+            <span class="scope__title">SKELETON · 五层与一条 ctx</span>
+            <span class="scope__bar__sp"></span>
+            <span class="scope__live"><i></i><span>static</span></span>
+          </div>
+          <div class="scope__stage">
+            <svg
+              viewBox="0 0 620 412"
+              role="img"
+              aria-label="dsh 的五层骨架：形态层、组装层、内核层、能力层、世界层，共用一条 ctx 总线"
+            >
+              <!-- 层：形态 -->
+              <rect class="d-ov__band" x="32" y="42" width="556" height="46" rx="2" />
+              <text class="d-ov__k" x="46" y="62">FORM</text>
+              <text class="d-ov__s" x="46" y="76">形态</text>
+              <text class="d-ov__v" x="130" y="70">web · headless · sdk · acp · desktop</text>
+
+              <!-- 层：组装 -->
+              <rect class="d-ov__band" x="32" y="98" width="556" height="46" rx="2" />
+              <text class="d-ov__k" x="46" y="118">ASSEMBLY</text>
+              <text class="d-ov__s" x="46" y="132">组装</text>
+              <text class="d-ov__v" x="130" y="126">bundle → profile → home → --patch</text>
+
+              <!-- 层：内核 -->
+              <rect class="d-ov__band is-core" x="32" y="154" width="556" height="118" rx="2" />
+              <text class="d-ov__k" x="46" y="206">KERNEL</text>
+              <text class="d-ov__s" x="46" y="220">内核</text>
+              <text class="d-ov__s" x="46" y="234">五个模块</text>
+
+              <rect class="d-ov__box" x="130" y="166" width="146" height="44" rx="2" />
+              <text class="d-ov__b" x="142" y="185">agent-loop</text>
+              <text class="d-ov__d" x="142" y="199">编排：领输入 · 发请求 · 分发</text>
+
+              <rect class="d-ov__box" x="284" y="166" width="146" height="44" rx="2" />
+              <text class="d-ov__b" x="296" y="185">tools</text>
+              <text class="d-ov__d" x="296" y="199">注册表 · 六步流水线</text>
+
+              <rect class="d-ov__box" x="438" y="166" width="146" height="44" rx="2" />
+              <text class="d-ov__b" x="450" y="185">session</text>
+              <text class="d-ov__d" x="450" y="199">只追加的事件日志</text>
+
+              <rect class="d-ov__box" x="130" y="216" width="146" height="44" rx="2" />
+              <text class="d-ov__b" x="142" y="235">system-prompt</text>
+              <text class="d-ov__d" x="142" y="249">每步重新装配</text>
+
+              <rect class="d-ov__box" x="284" y="216" width="146" height="44" rx="2" />
+              <text class="d-ov__b" x="296" y="235">llm</text>
+              <text class="d-ov__d" x="296" y="249">适配器缝 · 流式</text>
+
+              <!-- 第六格不是一个模块，是一个空位：内核里没有能力。
+                   把「不在这里」画出来，比让读者自己发现那片空白有用。 -->
+              <rect class="d-ov__box is-void" x="438" y="216" width="146" height="44" rx="2" />
+              <text class="d-ov__d" x="450" y="235">文件 · shell · 沙箱</text>
+              <text class="d-ov__d" x="450" y="249">不在这里，在下一层</text>
+
+              <!-- 层：能力 -->
+              <rect class="d-ov__band" x="32" y="282" width="556" height="46" rx="2" />
+              <text class="d-ov__k" x="46" y="302">CAPABILITY</text>
+              <text class="d-ov__s" x="46" y="316">能力</text>
+              <text class="d-ov__v" x="130" y="310">shell · fs · sandbox · web · lsp · subagent</text>
+
+              <!-- 层：世界 -->
+              <rect class="d-ov__band" x="32" y="338" width="556" height="46" rx="2" />
+              <text class="d-ov__k" x="46" y="358">WORLD</text>
+              <text class="d-ov__s" x="46" y="372">世界</text>
+              <text class="d-ov__v2" x="130" y="366">文件 · 进程 · 网络 · 编辑器</text>
+            </svg>
+          </div>
+          <p class="readout ov-readout">
+            读法：<b>横着看是「谁拥有谁」</b>，竖着看是「一次调用往下走」。
+            内核那五个模块不实现任何能力，它们只向能力层要服务；能力层才去碰世界。
+          </p>
+        </figure>
+        <p class="figcap">
+          虚线框是<b>可替换</b>的层，实线是<b>骨架</b>。内核右下那格虚线空位不是遗漏 ——
+          它标着「文件 · shell · 沙箱」都在下一层：内核一个都不实现，它们全是能被换掉的插件。
+        </p>
+
+        <p>
+          这张图和一般的分层图有一处不同：<b>没有中心调度器</b>。
+          内核的五个模块之间不互相调用，它们都挂在同一个 <code>ctx</code> 上，
+          靠<b>服务（按键取用）</b>和<b>事件（广播）</b>打交道。
+          所以你可以只替换其中一个，而不动其余四个 —— 这就是「一切皆插件」在架构上的实际含义。
+        </p>
+
+        <h2 id="s3">一次请求的八步</h2>
+        <p>
+          骨架是静态的，流程是动态的。下面这条线是你按下回车之后真正发生的事，
+          每一步都标了由谁负责、在哪一章展开。
+        </p>
+
+        <ol class="tr">
+          <li class="tr__row">
+            <span class="tr__i">01</span>
+            <span class="tr__b">
+              <span class="tr__h">输入被写成一条事实</span>
+              <span class="tr__d"
+                >你说的话不是「传给模型的参数」，而是一条 <code>user/message</code> 追加进日志。
+                从此它可回放、可 fork、可崩溃恢复。</span
+              >
+            </span>
+            <a class="tr__go" href="chapter-03.html">03 →</a>
+          </li>
+          <li class="tr__row">
+            <span class="tr__i">02</span>
+            <span class="tr__b">
+              <span class="tr__h">循环领走它，开一个 turn</span>
+              <span class="tr__d"
+                >turn 从领到首条输入开始，到「不再欠任何工作」结束。一个 turn 里可以有零个或多个
+                step。</span
+              >
+            </span>
+            <a class="tr__go" href="chapter-02.html">02 →</a>
+          </li>
+          <li class="tr__row">
+            <span class="tr__i">03</span>
+            <span class="tr__b">
+              <span class="tr__h">装配这一次的请求</span>
+              <span class="tr__d"
+                >系统提示 + 由日志投影出来的历史 + 这一轮可见的工具清单，拼成一次请求。
+                <b>每个 step 都重拼一次</b> —— 这是「越聊越贵」的根源。</span
+              >
+            </span>
+            <a class="tr__go" href="chapter-05.html">05 →</a>
+          </li>
+          <li class="tr__row">
+            <span class="tr__i">04</span>
+            <span class="tr__b">
+              <span class="tr__h">流式请求模型</span>
+              <span class="tr__d"
+                >token 一个个回来。这一步只产生文本，不产生任何副作用 ——
+                模型没有手这件事，在这里体现得最直接。</span
+              >
+            </span>
+            <a class="tr__go" href="chapter-01.html">01 →</a>
+          </li>
+          <li class="tr__row">
+            <span class="tr__i">05</span>
+            <span class="tr__b">
+              <span class="tr__h">输出里出现结构化调用，过闸门</span>
+              <span class="tr__d"
+                >只有「带名字和参数的工具调用」能变成动作。普通文字再像也不行 ——
+                否则模型随口一句就能删库。</span
+              >
+            </span>
+            <a class="tr__go" href="chapter-01.html">01 →</a>
+          </li>
+          <li class="tr__row">
+            <span class="tr__i">06</span>
+            <span class="tr__b">
+              <span class="tr__h">六步流水线执行</span>
+              <span class="tr__d"
+                >校验 → 挂钩子 → 审批 → 守门 → 执行 → 归一。失败不会让循环崩掉：
+                <b>错误本身就是一条结果</b>。</span
+              >
+            </span>
+            <a class="tr__go" href="chapter-05.html">05 →</a>
+          </li>
+          <li class="tr__row">
+            <span class="tr__i">07</span>
+            <span class="tr__b">
+              <span class="tr__h">结果落盘，回到下一步</span>
+              <span class="tr__d"
+                ><code>tool/result</code> 写进日志，再被投影成一条消息进入下一次装配。
+                模型看到的始终是「文件里有一百二十行」，不是文件本身。</span
+              >
+            </span>
+            <a class="tr__go" href="chapter-03.html">03 →</a>
+          </li>
+          <li class="tr__row">
+            <span class="tr__i">08</span>
+            <span class="tr__b">
+              <span class="tr__h">不再要工具，写 step/end</span>
+              <span class="tr__d"
+                >模型这轮没再调工具，循环写一条 <code>step/end</code>，turn 关闭。
+                整个过程在日志里变成十几条只增不改的记录。</span
+              >
+            </span>
+            <a class="tr__go" href="chapter-02.html">02 →</a>
+          </li>
+        </ol>
+
+        <p>
+          第 03 到第 08 步会<b>循环很多次</b>。一次「读三个文件然后改一处」的请求，
+          大概会走三轮：读 → 读 → 读 → 改。每一轮都重新装配一遍完整的上下文。
+        </p>
+        <p>
+          这也解释了一个新手最容易误判的地方：<b>你在 UI 上看到的一段「思考」，在日志里是十几条记录</b>。
+          想调试，就去读日志，不要盯着界面猜。
+        </p>
+
+        <h2 id="s4">三种读法</h2>
+        <p>
+          同一套材料，三种人能拿到三种东西。左栏给了三组入口，这里说清每组的目标。
+        </p>
+
+        <div class="ov-paths">
+          <div class="ov-path">
+            <span class="ov-path__k">产品 / 决策</span>
+            <p>
+              你要回答的是「为什么不用一个单体程序」。答案在这一页的上半段，和
+              <a href="chapter-07.html">第 07 章</a>：只有日志格式被冻结，其余全部允许破坏性变更 ——
+              因为变化速率不同，稳定性预算只能花在一处。
+            </p>
+          </div>
+          <div class="ov-path">
+            <span class="ov-path__k">架构 / 连接</span>
+            <p>
+              你要能白板画出这张五层图，并说清「模块之间不互相调用」。
+              然后读 <a href="chapter-04.html">第 04 章</a>（ctx / 服务 / 三角色）与
+              <a href="chapter-06.html">第 06 章</a>（四层 patch 怎么叠出配置树）。
+            </p>
+          </div>
+          <div class="ov-path">
+            <span class="ov-path__k">研发 / 动手</span>
+            <p>
+              你要能加一个工具、改一个策略、读懂一次失败。
+              先照 <a href="start.html">上手</a> 跑通第一个插件，再按
+              <a href="chapter-02.html">02</a> → <a href="chapter-05.html">05</a> →
+              <a href="chapter-03.html">03</a> 的顺序读。
+            </p>
+          </div>
+        </div>
+
+        <h2 id="s5">读完能回答这八个问题吗</h2>
+        <p>这八问就是本导读的验收标准。答不上来的那一条，就是你还没读的那一章。</p>
+
+        <details class="check">
+          <summary><em>01</em>模型能直接改你的文件吗？它凭什么「动手」？</summary>
+          <p>
+            不能。模型只输出文本。执行的是外面那层程序 —— 它认出一段结构化的工具调用，
+            自己做那件事，再把结果的文本版喂回去。<a href="chapter-01.html">第 01 章</a>
+          </p>
+        </details>
+        <details class="check">
+          <summary><em>02</em>同一个回合里，第几次请求最贵？为什么？</summary>
+          <p>
+            最后一次。每次请求都要重新装配完整上下文：系统提示、全部历史、工具清单。
+            历史越长，输入 token 越多。<a href="chapter-02.html">第 02 章</a>
+          </p>
+        </details>
+        <details class="check">
+          <summary><em>03</em>日志和「模型看到的历史」是同一个东西吗？</summary>
+          <p>
+            不是。日志是只增的事实流；历史是每次请求前从日志投影出来的视图。
+            压缩只让视图塌下去，日志一条都不会少。<a href="chapter-03.html">第 03 章</a>
+          </p>
+        </details>
+        <details class="check">
+          <summary><em>04</em>两个插件互相不知道对方的存在，怎么协作？</summary>
+          <p>
+            通过 <code>ctx</code> 上的键。一个把实现注册成 <code>ctx.shell</code>，
+            另一个声明 <code>inject: ['shell']</code>。换掉前者，后者一行不用改。
+            <a href="chapter-04.html">第 04 章</a>
+          </p>
+        </details>
+        <details class="check">
+          <summary><em>05</em>模型看到的工具表和源码里的工具定义，差在哪？</summary>
+          <p>
+            模型只看到名字、说明、参数表。执行函数、输出形状、UI 卡片都不发给它 ——
+            这是一次投影，不是一份拷贝。<a href="chapter-05.html">第 05 章</a>
+          </p>
+        </details>
+        <details class="check">
+          <summary><em>06</em>一次工具调用失败，会不会把整个 agent 弄崩？</summary>
+          <p>
+            不会。失败被收敛成一条<code> isError </code>的结果事件回到模型，
+            模型下一步通常会改参数重试。只有必填条目起不来才会拆掉整个应用。
+            <a href="chapter-05.html">第 05 章</a>
+          </p>
+        </details>
+        <details class="check">
+          <summary><em>07</em>我想改一个默认值，该改哪一层配置？</summary>
+          <p>
+            看这个值的变化速率：跟版本走改组合包，跟项目走改 profile，跟人走改 home 级 patch。
+            改完用 <code>--dump-config</code> 确认，别靠读文件猜。
+            <a href="chapter-06.html">第 06 章</a>
+          </p>
+        </details>
+        <details class="check">
+          <summary><em>08</em>为什么内部 API 可以随便改，日志格式却四代不许动？</summary>
+          <p>
+            因为只有日志会离开进程、被另一个版本的进程读到。API 的错能通知、能重跑；
+            日志的错意味着用户三个月前那次对话打不开了。
+            <a href="chapter-07.html">第 07 章</a>
+          </p>
+        </details>
+
+        <div class="ov-cta">
+          <a class="ov-cta__a" href="start.html">
+            <span class="ov-cta__k">下一步</span>
+            <span class="ov-cta__t">跑起来，写第一个插件 →</span>
+          </a>
+          <a class="ov-cta__a" href="chapter-01.html">
+            <span class="ov-cta__k">或者</span>
+            <span class="ov-cta__t">从第 01 章顺着读 →</span>
+          </a>
+        </div>
+      </article>
+
+      <aside class="toc" aria-label="本页目录">
+        <p class="eyebrow">本页</p>
+        <ul>
+          <li><a data-n="1" href="#s1" class="is-active">它是什么</a></li>
+          <li><a data-n="2" href="#s2">骨架：五层</a></li>
+          <li><a data-n="3" href="#s3">八步流程</a></li>
+          <li><a data-n="4" href="#s4">三种读法</a></li>
+          <li><a data-n="5" href="#s5">八问自检</a></li>
+        </ul>
+        <hr class="toc__rule" />
+        <p class="eyebrow">跳去</p>
+        <ul class="toc__modules">
+          <li><a href="start.html">上手：第一个插件</a></li>
+          <li><a href="glossary.html">术语表</a></li>
+          <li><a href="index.html">全部七章</a></li>
+        </ul>
+      </aside>
+    </div>
+
+    <script src="assets/site.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>上手 — DeepSeek Harness 导读</title>
+    <meta
+      name="description"
+      content="三分钟跑起来，写第一个插件，加第一个工具。命令与代码取自上游文档，逐字可执行。"
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+    <script>
+      (function () {
+        try {
+          var m = localStorage.getItem("dsh-theme") || "auto";
+          var dark =
+            m === "dark" ||
+            (m === "auto" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          document.documentElement.dataset.mode = m;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body data-page="start.html">
+    <div
+      class="progress"
+      data-progress
+      role="progressbar"
+      aria-label="阅读进度"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    ></div>
+
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="brand" href="index.html">
+          <span class="brand__mark" aria-hidden="true"></span>
+          DeepSeek Harness 导读
+        </a>
+        <nav class="topnav" aria-label="站点导航">
+          <a href="index.html">目录</a>
+          <a href="overview.html">全景</a>
+          <a href="start.html" aria-current="page">上手</a>
+          <a class="is-optional" href="glossary.html">术语表</a>
+          <a class="is-optional" href="styleguide.html">规范</a>
+          <a
+            class="is-optional"
+            href="https://github.com/lzwanan/deepseek-harness-guide"
+            target="_blank"
+            rel="noreferrer noopener"
+            >本仓库</a
+          >
+          <a
+            class="is-optional"
+            href="https://github.com/deepseek-ai/deepseek-harness"
+            target="_blank"
+            rel="noreferrer noopener"
+            >上游源码</a
+          >
+          <button class="theme-toggle" type="button" data-theme-toggle>自动</button>
+        </nav>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="side" aria-label="动手步骤">
+        <div class="side__group">
+          <p class="eyebrow">五步</p>
+          <ul class="paths">
+            <li>
+              <span class="paths__k">00 前置</span>
+              <span class="paths__d">Node 20+ / pnpm，一条警告</span>
+              <span class="paths__l"><a href="#s0">先看这里</a></span>
+            </li>
+            <li>
+              <span class="paths__k">01 跑起来</span>
+              <span class="paths__d">npx 一行，或从源码</span>
+              <span class="paths__l"><a href="#s1">两种方式</a></span>
+            </li>
+            <li>
+              <span class="paths__k">02 第一个插件</span>
+              <span class="paths__d">15 行，看到日志打印</span>
+              <span class="paths__l"><a href="#s2">写 apply</a></span>
+            </li>
+            <li>
+              <span class="paths__k">03 第一个工具</span>
+              <span class="paths__d">20 行，模型真的会调</span>
+              <span class="paths__l"><a href="#s3">defineTool</a></span>
+            </li>
+            <li>
+              <span class="paths__k">04 改哪里</span>
+              <span class="paths__d">四类改动对照表</span>
+              <span class="paths__l"><a href="#s4">对照表</a></span>
+            </li>
+            <li>
+              <span class="paths__k">05 出错</span>
+              <span class="paths__d">三种最常见的卡点</span>
+              <span class="paths__l"><a href="#s5">排查</a></span>
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+      <article class="doc">
+        <p class="eyebrow">上手 / get started</p>
+        <h1 id="s0">先跑起来，再谈原理</h1>
+        <p class="lede">
+          这一页只有可执行的东西：两条启动命令、两个 20 行以内的文件、一张「改哪里」对照表。
+          全部命令与代码取自上游文档，逐字可用。
+        </p>
+
+        <div class="warn">
+          <b>它还是 developer preview。</b>上游 README 用整段大写写着
+          <i>THERE WILL BE COMPATIBILITY-BREAKING CHANGES</i>。
+          所以下面这些命令过几个月可能变 —— 变了就以仓库里的 README 为准。
+          这也正是第 07 章讲的那件事：内部随便改，只有日志格式不许动。
+        </div>
+
+        <p>
+          需要 Node 和 pnpm。如果只想看看它能干什么，第 01 步的 npx 一行就够；
+          想改代码，走「从源码」那条。
+        </p>
+
+        <h2 id="s1">01 跑起来</h2>
+
+        <p class="eyebrow code__cap">最快的一条 · 不需要 clone</p>
+        <pre class="code"><code>npx @deepseek-ai/dsh web</code></pre>
+
+        <p>
+          默认在 <code>http://127.0.0.1:3080</code> 起 Web UI，并自动打开浏览器。
+          加 <code>--no-open</code> 只起服务不开窗。这时候你说话、它调工具、日志落盘 ——
+          <a href="overview.html#s3">全景页那八步</a>已经全在跑了。
+        </p>
+
+        <p class="eyebrow code__cap">从源码 · 要改代码走这条</p>
+        <pre class="code"><code>git clone https://github.com/deepseek-ai/deepseek-harness.git
+cd deepseek-harness
+pnpm install
+pnpm run build
+pnpm dsh web</code></pre>
+
+        <p>
+          <code>pnpm run build</code> 准备产物，<code>pnpm dsh web</code> 直接用产物启动、不会再编译。
+          改源码时用 <code>pnpm run dev:web</code>，它会在一个终端里编译、起服务、并跟着改。
+        </p>
+
+        <p>
+          <b>最后那个 <code>web</code> 是形态，不是参数。</b>同一个 <code>dsh</code> 换一个词就换一副外壳：
+        </p>
+
+        <div class="sg-wrap ov-table">
+          <table class="sg-table">
+            <colgroup>
+              <col style="width: 104px" />
+              <col style="width: 150px" />
+              <col />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>形态</th>
+                <th>怎么起</th>
+                <th>什么时候用</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="mono">web</td>
+                <td class="mono">dsh web</td>
+                <td>带界面的日常使用，也是读源码时的调试入口</td>
+              </tr>
+              <tr>
+                <td class="mono">headless</td>
+                <td class="mono">dsh headless</td>
+                <td>跑一次就退出，适合脚本和 CI</td>
+              </tr>
+              <tr>
+                <td class="mono">sdk</td>
+                <td class="mono">dsh --profile sdk</td>
+                <td>用 JSON-RPC 说话，给自己的程序调用</td>
+              </tr>
+              <tr>
+                <td class="mono">acp</td>
+                <td class="mono">dsh acp</td>
+                <td>接编辑器的 Agent Client Protocol</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          这四个不是四个程序，是四份配置。<a href="chapter-06.html">第 06 章</a>
+          讲过：一份 profile 就是「组合包 + 自己的 patch」叠出来的一棵树，换 profile 就是换树。
+        </p>
+
+        <h2 id="s2">02 第一个插件</h2>
+        <p>
+          <b>在 dsh 里，插件就是一个导出 <code>apply</code> 的模块。</b>
+          框架加载它时把 <code>ctx</code> 递进来，你在 <code>ctx</code> 上登记能力。
+          没有基类、没有生命周期接口、没有注册表要填。
+        </p>
+
+        <p class="eyebrow code__cap">新建 · scratch-plugin/src/my-plugin.ts</p>
+        <pre class="code"><code>import type { Context } from '@deepseek-ai/cordis'
+
+export const name = 'hello-plugin'
+
+export function apply(ctx: Context) {
+  console.log('[hello-plugin] plugin loaded!')
+}</code></pre>
+
+        <p>
+          然后告诉启动器「多插一行」。这就是<a href="chapter-06.html">第 06 章</a>讲的
+          <code>--patch</code>：一份只做插入的 patch，不改任何已有条目。
+        </p>
+
+        <p class="eyebrow code__cap">新建 · scratch-plugin/cordis.yml · 路径必须是绝对路径</p>
+        <pre class="code"><code>- insert:
+    - id: hello
+      name: '/absolute/path/to/deepseek-harness/scratch-plugin/src/my-plugin.ts'</code></pre>
+
+        <p class="eyebrow code__cap">启动</p>
+        <pre class="code"><code>pnpm dsh web --patch ./scratch-plugin/cordis.yml</code></pre>
+
+        <p>
+          <b>你会看到什么：</b>终端在启动过程中打印一行
+          <code>[hello-plugin] plugin loaded!</code>，Web UI 照常打开。
+          二十行不到，你已经改了一个正在运行的 agent 的行为。
+        </p>
+
+        <p>
+          这一行之所以能生效，是因为<a href="chapter-04.html">第 04 章</a>那个
+          <code>ctx</code>：它不是配置对象，是运行时。你登记在这个对象上的任何东西 ——
+          事件监听、工具、定时器 —— 都会在插件卸载时<b>自动撤销</b>。
+          你不需要写 <code>removeListener</code>，也不需要 <code>clearInterval</code>。
+        </p>
+
+        <p class="eyebrow code__cap">需要自己清理的资源，这样交回去</p>
+        <pre class="code"><code>export function apply(ctx: Context) {
+  ctx.effect(() =&gt; {
+    const timer = setInterval(() =&gt; console.log('heartbeat'), 5000)
+    return () =&gt; clearInterval(timer)   // 插件卸载时执行
+  })
+}</code></pre>
+
+        <h2 id="s3">03 第一个工具</h2>
+        <p>
+          插件能跑，但模型还看不见它。要让模型<b>动手</b>，得注册一个工具 ——
+          这就是<a href="chapter-05.html">第 05 章</a>那个「模型只看到四样东西」的实际形状。
+        </p>
+
+        <p class="eyebrow code__cap">替换 my-plugin.ts</p>
+        <pre class="code"><code>import type { Context } from '@deepseek-ai/cordis'
+import { defineTool } from '@deepseek-ai/dsh-tools'
+
+export const name = 'greet-tool'
+export const inject = ['tools']
+
+export function apply(ctx: Context) {
+  ctx.tools.register(defineTool({
+    name: 'greet',
+    description: 'Greet someone by name.',
+    parameters: {
+      name: { type: 'string', required: true, description: 'The name to greet' },
+    },
+    output: {
+      schema: { type: 'string' },
+      render: (_args, value) => [{ type: 'text', text: value }],
+    },
+    async execute(args) {
+      return `Hello, ${args.name}!`
+    },
+  }))
+}</code></pre>
+
+        <p>
+          重启，然后在界面对它说：<code>Use the greet tool to greet Ada.</code>
+          它会调用 <code>greet</code>，拿回 <code>Hello, Ada!</code>。
+        </p>
+
+        <p>
+          这段代码里有三个东西值得单独看，它们正好对应三章：
+        </p>
+
+        <div class="ov-paths">
+          <div class="ov-path">
+            <span class="ov-path__k">inject: ['tools']</span>
+            <p>
+              不是注释，是依赖声明。工具注册表没就位之前，这个插件<b>挂着等</b>，不会报错。
+              <a href="chapter-04.html">第 04 章</a>
+            </p>
+          </div>
+          <div class="ov-path">
+            <span class="ov-path__k">parameters</span>
+            <p>
+              <code>defineTool</code> 从它推出 <code>args</code> 的类型，并在执行前替你把模型给的参数校验一遍 ——
+              你在 <code>execute</code> 里拿到的已经是干净的。
+              <a href="chapter-05.html">第 05 章</a>
+            </p>
+          </div>
+          <div class="ov-path">
+            <span class="ov-path__k">return 值</span>
+            <p>
+              返回的是<b>规范值</b>，不是给人看的字符串。给模型看的话由 <code>render</code> 负责，
+              给界面看的卡片是第三件事。分开之后，同一个结果才能既进提示词又进 UI。
+              <a href="chapter-05.html">第 05 章</a>
+            </p>
+          </div>
+        </div>
+
+        <p>
+          生产级的参考实现是 <code>packages/shell/tool-bash</code>：
+          一个工具怎么带后台任务、怎么出终端卡片、怎么把超长输出溢出到文件，那里都有。
+          但它不是读的第一个文件 —— 先把上面这二十行跑通。
+        </p>
+
+        <h2 id="s4">04 想改东西，先定位它属于哪一类</h2>
+        <p>
+          跑通之后，真正的问题是「我要的那个改动，落在哪」。这张表按变动频率排，
+          越靠上越安全、越靠下越要谨慎。
+        </p>
+
+        <div class="sg-wrap ov-table">
+          <table class="sg-table">
+            <colgroup>
+              <col style="width: 150px" />
+              <col style="width: 210px" />
+              <col />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>你想做的事</th>
+                <th>写在哪</th>
+                <th>为什么</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>加一个能力</td>
+                <td>新插件 + <code>defineTool</code></td>
+                <td>循环不用动，工具表是配置出来的</td>
+              </tr>
+              <tr>
+                <td>让工具列表按条件变化</td>
+                <td><code>tools/pre-execute</code> 钩子</td>
+                <td>在装配请求之前筛，比改工具本身稳</td>
+              </tr>
+              <tr>
+                <td>拦一次危险调用</td>
+                <td><code>ctx.tools.guard()</code></td>
+                <td>单调拒绝：后面的监听器没法把它改回允许</td>
+              </tr>
+              <tr>
+                <td>改一次对话的推进顺序</td>
+                <td><code>agent/*</code> 事件</td>
+                <td>观察或拦截进行中的工作，不碰循环实现</td>
+              </tr>
+              <tr>
+                <td>改默认值 / 换实现</td>
+                <td>对应的那一层 patch</td>
+                <td>组合包跟版本、profile 跟项目、home 跟人</td>
+              </tr>
+              <tr>
+                <td>改「什么算一条事实」</td>
+                <td><b>先写持久化确认记录</b></td>
+                <td>日志格式是唯一被冻结的东西，改它要走流程</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="s5">跑不起来的时候，先看这三处</h2>
+
+        <details class="check">
+          <summary><em>启动即退</em>终端只留一行非零退出码</summary>
+          <p>
+            通常是<b>必填条目</b>没起来：<code>agent-loop</code>、<code>tool-executor-native</code>
+            或某个应用入口。普通插件起不来只警告，必填条目起不来才拆整个应用 ——
+            所以退出码非零说明问题在骨架，不在你的插件。<a href="chapter-06.html">第 06 章</a>
+          </p>
+        </details>
+
+        <details class="check">
+          <summary><em>插件加载了，但模型看不见工具</em></summary>
+          <p>
+            九成是两件事：<code>inject</code> 漏了（<code>ctx.tools</code> 还不存在），
+            或者 <code>description</code> / <code>parameters</code> 写得不合法导致工具没被登记。
+            先看启动日志里有没有你的工具名，再看这轮对话的可见工具是不是被钩子筛掉了。
+          </p>
+        </details>
+
+        <details class="check">
+          <summary><em>路径找不到</em>—— <code>--patch</code> 里的插件路径</summary>
+          <p>
+            必须是<b>绝对路径</b>。patch 文件只贡献配置，不会改变 loader 解析模块路径时用的目录。
+            相对路径在某些情况下能跑，但那不是它承诺的行为。
+          </p>
+        </details>
+
+        <div class="ov-cta">
+          <a class="ov-cta__a" href="overview.html">
+            <span class="ov-cta__k">回头看</span>
+            <span class="ov-cta__t">全景：五层骨架与八步流程 →</span>
+          </a>
+          <a class="ov-cta__a" href="chapter-01.html">
+            <span class="ov-cta__k">系统读</span>
+            <span class="ov-cta__t">从第 01 章开始 →</span>
+          </a>
+        </div>
+      </article>
+
+      <aside class="toc" aria-label="本页目录">
+        <p class="eyebrow">本页</p>
+        <ul>
+          <li><a data-n="0" href="#s0" class="is-active">先跑起来</a></li>
+          <li><a data-n="1" href="#s1">跑起来</a></li>
+          <li><a data-n="2" href="#s2">第一个插件</a></li>
+          <li><a data-n="3" href="#s3">第一个工具</a></li>
+          <li><a data-n="4" href="#s4">改哪里</a></li>
+          <li><a data-n="5" href="#s5">跑不起来</a></li>
+        </ul>
+        <hr class="toc__rule" />
+        <p class="eyebrow">依据</p>
+        <ul class="toc__modules">
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/blob/master/README.md"
+              target="_blank"
+              rel="noreferrer noopener"
+              >README</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/develop/basic/index.md"
+              target="_blank"
+              rel="noreferrer noopener"
+              >第一个插件</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/develop/basic/tool.md"
+              target="_blank"
+              rel="noreferrer noopener"
+              >开发一个工具</a
+            >
+          </li>
+        </ul>
+      </aside>
+    </div>
+
+    <script src="assets/site.js" defer></script>
+  </body>
+</html>

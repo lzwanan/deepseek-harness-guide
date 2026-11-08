@@ -42,6 +42,8 @@
         </a>
         <nav class="topnav" aria-label="站点导航">
           <a href="index.html">目录</a>
+          <a href="overview.html">全景</a>
+          <a href="start.html">上手</a>
           <a class="is-optional" href="glossary.html">术语表</a>
           <a href="styleguide.html" aria-current="page">规范</a>
           <a class="is-optional" href="https://github.com/lzwanan/deepseek-harness-guide" target="_blank" rel="noreferrer noopener">本仓库</a>
@@ -715,6 +717,13 @@
               正文流里只有内容，不放导航。
             </p>
             <p class="sg-note">
+              <strong>两个非章节页。</strong><code>overview.html</code> 与 <code>start.html</code> 不在七章里，
+              骨架也不同：左栏换成「三条读法」或「五步」（<code>.paths</code>），正文用
+              <code>.tr</code> 排八步流程、用 <code>.ov-cta</code> 收尾。它们只干一件事 ——
+              把七章的「零件视角」补成「系统视角」：一张五层骨架图、一条端到端链路、一条能照着敲的路。
+              三页的分工是固定的：<b>全景讲为什么</b>、<b>章讲是什么</b>、<b>上手讲怎么动</b>。
+            </p>
+            <p class="sg-note">
               <strong>线型也是信息。</strong>虚线框一律表示「会变的东西」，实线框表示「已经写定」。
               第 07 章那张图整个论点就架在这条区分上（左边虚线框在换代、右边实线条只增不减）——
               如果没有语义，虚线就该改回实线：装饰性的虚线会被读成「未完成」。
@@ -979,6 +988,11 @@
                     <td class="mono">chapter-0X.html</td>
                     <td>正文。结构照第 06 节的骨架，不新增容器层级。</td>
                     <td>新增组件前先看第 05 节有没有现成的。</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">overview.html / start.html</td>
+                    <td>两个非章节页。骨架图是手写静态 SVG（<code>d-ov__*</code>），不进 figures.js —— 它不需要时间轴。</td>
+                    <td>这两页只放「系统级」内容，任何零件细节都应留在七章里。</td>
                   </tr>
                   <tr>
                     <td class="mono">styleguide.html</td>
